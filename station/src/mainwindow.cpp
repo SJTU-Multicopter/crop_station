@@ -164,7 +164,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Offboard_Speed->setEnabled(false);
 
     ui->progressBar_GPS->setRange(0,15);
-    ui->progressBar_Battery->setRange(185,240);
+    ui->progressBar_Battery->setRange(190,240);
     ui->progressBar_RC->setRange(0,200);
 
     //set conection display
@@ -263,9 +263,9 @@ void MainWindow::local_Position_Slot()
     save_counter++;
     if(message.mode=="自动喷洒" && save_counter%10==1)
     {
-         float yaw = message.local_position.orientation.yaw + 3.1416;
+         float yaw = message.local_position.orientation.yaw + 3.14/2;
          real_position[position_num][0]=message.local_position.position.x*cos(yaw) - message.local_position.position.y*sin(yaw);
-         real_position[position_num][1]=message.local_position.position.y*cos(yaw) + message.local_position.position.x*sin(yaw);
+         real_position[position_num][1]=-(message.local_position.position.y*cos(yaw) + message.local_position.position.x*sin(yaw));
 
          //画出飞行图
          QPainter painter;
