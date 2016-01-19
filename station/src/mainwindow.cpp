@@ -264,8 +264,8 @@ void MainWindow::local_Position_Slot()
     if(message.mode=="自动喷洒" && save_counter%10==1)
     {
          float yaw = message.local_position.orientation.yaw + 3.1416;
-         real_position[position_num][0]=message.local_position.position.x*cos(yaw) + message.local_position.position.y*sin(yaw);
-         real_position[position_num][1]=message.local_position.position.y*cos(yaw) - message.local_position.position.x*sin(yaw);
+         real_position[position_num][0]=message.local_position.position.x*cos(yaw) - message.local_position.position.y*sin(yaw);
+         real_position[position_num][1]=message.local_position.position.y*cos(yaw) + message.local_position.position.x*sin(yaw);
 
          //画出飞行图
          QPainter painter;

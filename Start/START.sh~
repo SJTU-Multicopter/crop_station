@@ -1,0 +1,5 @@
+#!/bin/bash
+gnome-terminal -x bash -c "./MAVROS.sh"
+gnome-terminal -x bash -c "./STATION.sh"
+
+
