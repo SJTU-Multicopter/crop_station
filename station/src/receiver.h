@@ -15,14 +15,13 @@ using namespace std;
 struct Imu_Data
 {
 };
-
-struct Field_Size_Confirm
+struct Extra_Function
 {
-    float length;
-    float width;
-    float height;
-    int times;
-    int confirm;
+    unsigned short obs_avoid_enable;
+    unsigned short laser_height_enable;
+    unsigned short add_one;
+    unsigned short add_two;
+    unsigned short add_three;
 };
 struct Pump
 {
@@ -100,12 +99,29 @@ struct Optical_Flow
     double quality;
 };
 
-struct Field_Size
+struct Offboard_Setpoints
 {
-    float length;
-    float width;
-    float height;
-    int times;
+    float px_1;
+    float py_1;
+    float ph_1;
+    float px_2;
+    float py_2;
+    float ph_2;
+    float yaw;
+    int seq;
+    int total;
+};
+
+struct Setpoints_Receive
+{
+    float px_1;
+    float py_1;
+    float ph_1;
+    float px_2;
+    float py_2;
+    float ph_2;
+    int seq;
+    int num;
 };
 
 class MavrosMessage : public QThread
@@ -126,9 +142,12 @@ public:
     double time_fromboost;
     struct Wind_Speed wind_speed;
     struct Optical_Flow optical_flow;
-    struct Field_Size field_size;
-    struct Field_Size_Confirm field_size_confirm;
+
     struct Pump pump;
+    struct Offboard_Setpoints setpoints_send;
+    struct Setpoints_Receive setpoints_receive;
+    struct Extra_Function extra_function;
+
     int success_counter;
 
 
@@ -145,8 +164,7 @@ public:
     void msg_Send_Imu_Data()const{emit imu_Data_Signal();}
     void msg_Send_Temperature()const{emit temperature_Signal();}
     void msg_Send_Time()const{emit time_Signal();}
-    void msg_Send_Offboard_Set()const{emit offboard_Set_Signal();}
-    void msg_Send_Field_Size_Confirm()const{emit field_Size_Confirm_Signal();}
+    void msg_Send_Setpoints_Confirm()const{emit setpoints_Confirm_Signal();}
     void msg_Send_Pump_Status()const{emit pump_Status_Signal();}
 
     /**********信号**********/
@@ -165,7 +183,7 @@ signals:
     void temperature_Signal()const;
     void time_Signal()const;
     void offboard_Set_Signal()const;
-    void field_Size_Confirm_Signal()const;
+    void setpoints_Confirm_Signal()const;
     void pump_Status_Signal()const;
 };
 

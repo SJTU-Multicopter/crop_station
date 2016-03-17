@@ -44,7 +44,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_executable(receiver src/receiver.cpp 
     ${uis_h} ${qt_srcs} ${qt_moc_srcs} ${qt_resrcs_RCC})
 target_link_libraries(receiver ${QT_LIBRARIES} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-add_dependencies(receiver receiver_generate_messages_cpp)
+
 
 
 ## System dependencies are found with CMake's conventions

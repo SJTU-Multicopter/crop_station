@@ -3041,33 +3041,52 @@
                         <field type="float" name="laser_y">laser y</field>
        </message>
        
-       <message id="224" name="FIELD_SIZE">
+       <message id="224" name="OFFBOARD_SETPOINT">
              <description>Message for field </description>
-             <field type="float" name="length"> L </field>
-             <field type="float" name="width"> W </field>
-             <field type="float" name="height"> H </field>
-             <field type="uint8_t" name="times"> T </field>
+             <field type="uint8_t" name="seq"> sequence</field>
+             <field type="uint8_t" name="total"> total number</field>
+             <field type="float" name="px_1"> x1 </field>
+             <field type="float" name="py_1"> y1 </field>
+             <field type="float" name="ph_1"> H1 </field>
+             <field type="float" name="px_2"> x2 </field>
+             <field type="float" name="py_2"> y2 </field>
+             <field type="float" name="ph_2"> H2 </field>
+             <field type="float" name="yaw"> yaw </field>
        </message>
 
-       <message id="225" name="FIELD_SIZE_CONFIRM">
-             <description>Message to confirm field size </description>
-             <field type="float" name="length"> L </field>
-             <field type="float" name="width"> W </field>
-             <field type="float" name="height"> H </field>
-             <field type="uint8_t" name="times"> T </field>
-             <field type="uint8_t" name="confirm"> if confirmed, value=1 </field>
+       <message id="225" name="OFFBOARD_SETPOINT_CONFIRM">
+             <description>Message to confirm </description>
+             <field type="uint8_t" name="seq"> sequence</field>
+             <field type="uint8_t" name="total"> total number</field>
+             <field type="float" name="px_1"> x1 </field>
+             <field type="float" name="py_1"> y1 </field>
+             <field type="float" name="ph_1"> H1 </field>
+             <field type="float" name="px_2"> x2 </field>
+             <field type="float" name="py_2"> y2 </field>
+             <field type="float" name="ph_2"> H2 </field>
        </message>
+
        <message id="234" name="PUMP_CONTROLLER">
              <description>Message to control pump</description>
              <field type="float" name="pump_speed_sp">pump</field>
              <field type="float" name="spray_speed_sp">spray</field>
-       </message>              
+       </message>  
+            
        <message id="235" name="PUMP_STATUS">
              <description>Message to see pump speed</description>
              <field type="float" name="pump_speed">pump</field>
              <field type="float" name="spray_speed">spray</field>
        </message>
 
+<!-- add by CJ -->
+       <message id="236" name="EXTRA_FUNCTION">
+             <description>Message to send bool variables</description>
+             <field type="uint8_t" name="obs_avoid_enable">bool for obstacle avoidance</field>
+             <field type="uint8_t" name="laser_height_enable">bool for control height by laser</field>
+	     <field type="uint8_t" name="add_one">additional function bool 1</field>
+             <field type="uint8_t" name="add_two">additional function bool 2</field>
+	     <field type="uint8_t" name="add_three">additional function bool 3</field>
+       </message>
        
         <message id="241" name="VIBRATION">
             <description>Vibration levels and accelerometer clipping</description>

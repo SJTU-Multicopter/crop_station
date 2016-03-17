@@ -1,2 +1,0 @@
-#!/bin/bash
-roslaunch station px4Wireless.launch
