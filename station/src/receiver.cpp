@@ -126,7 +126,7 @@ void MavrosMessage::run()
         extra_msg.add_one = message.extra_function.add_one;
         extra_msg.add_two = message.extra_function.add_two;
         extra_msg.add_three = message.extra_function.add_three;
-        //extra_function_pub.publish(extra_msg);
+        extra_function_pub.publish(extra_msg);
         //cout<<pump_msg.spray_speed_sp<<endl;
 
         //set field values
@@ -159,7 +159,7 @@ void MavrosMessage::run()
                       extra_msg.add_one = message.extra_function.add_one;
                       extra_msg.add_two = message.extra_function.add_two;
                       extra_msg.add_three = message.extra_function.add_three;
-                      //extra_function_pub.publish(extra_msg);
+                      extra_function_pub.publish(extra_msg);
 
                       other_sending_counter = 0;
                   }

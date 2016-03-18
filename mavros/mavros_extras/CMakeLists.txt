@@ -142,7 +142,7 @@ add_library(mavros_extras
   #src/plugins/offboard_route_points_confirm.cpp
   src/plugins/offboard_route_points_confirm_receiver.cpp
   src/plugins/extra_function.cpp
-  src/plugins/extra_function_receiver.cpp
+  #src/plugins/extra_function_receiver.cpp
   
 )
 add_dependencies(mavros_extras

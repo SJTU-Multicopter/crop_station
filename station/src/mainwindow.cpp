@@ -8,7 +8,7 @@
 
 extern MavrosMessage message;
 
-bool test_mode = true;
+bool test_mode = false;
 bool imitate_mode = false;
 
 int choice=0;//选择显示的图片
@@ -531,7 +531,7 @@ int MainWindow::on_pushButton_Route_Generate_clicked()
             else  //all correct
             {
                 offset_dist_m = ui->lineEdit_Offset_Dist->text().toFloat();
-                take_off_height = ui->lineEdit_Flying_Height->text().toFloat();
+                flying_height = ui->lineEdit_Flying_Height->text().toFloat();
                 int value = ui->dial_Offset_Angle->value();
                 offset_angle_d = (float)(- value + 270);
                 record_start_p();
@@ -1713,7 +1713,7 @@ void MainWindow::break_point_cal()
     //record home gps position
     if(!test_mode) record_home_gps();
     record_start_p();
-    take_off_height = ui->lineEdit_Flying_Height_2->text().toFloat();
+    flying_height = ui->lineEdit_Flying_Height_2->text().toFloat();
 
     /*calculate fence local position*/
     for(int i=0;i<=gps_num;i++)
