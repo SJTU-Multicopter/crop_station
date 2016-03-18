@@ -285,6 +285,7 @@ void chatterCallback_LocalPosition_Local(const geometry_msgs::PoseStamped &msg)/
     message.local_position.position.y = msg.pose.position.y;
     message.local_position.position.z = msg.pose.position.z;
     //cout<<"x"<<msg.pose.position.x<<endl;
+    cout<<"yaw"<<message.local_position.orientation.yaw+3.14159<<endl;
     message.msg_Send_Rel_Alt();
     message.msg_Send_Orientation();
 

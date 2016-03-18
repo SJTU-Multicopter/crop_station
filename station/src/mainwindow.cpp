@@ -8,7 +8,7 @@
 
 extern MavrosMessage message;
 
-bool test_mode = false;
+bool test_mode = true;
 bool imitate_mode = false;
 
 int choice=0;//选择显示的图片
@@ -156,7 +156,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Spray_Length->setText(QString::number(1.6));
 
     //set limitation
-    ui->lineEdit_Flying_Height->setValidator(new QDoubleValidator(0.0,20.0,2,this));
+    ui->lineEdit_Flying_Height->setValidator(new QDoubleValidator(0.0,6.0,2,this));
     ui->lineEdit_Take_Off_Height->setValidator(new QDoubleValidator(0.0,40.0,2,this));
     ui->lineEdit_Offset_Dist->setValidator(new QDoubleValidator(0.0,100.0,2,this));
     ui->lineEdit_Measure_Compensation->setValidator(new QDoubleValidator(-100.0,100.0,2,this));
@@ -531,6 +531,7 @@ int MainWindow::on_pushButton_Route_Generate_clicked()
             else  //all correct
             {
                 offset_dist_m = ui->lineEdit_Offset_Dist->text().toFloat();
+                take_off_height = ui->lineEdit_Flying_Height->text().toFloat();
                 int value = ui->dial_Offset_Angle->value();
                 offset_angle_d = (float)(- value + 270);
                 record_start_p();
@@ -661,7 +662,7 @@ void MainWindow::draw_gps_fence()
 
     //draw lines
     QPainter painter;
-    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
 
@@ -709,7 +710,7 @@ void MainWindow::draw_route(int window)
     scale = (scale_x < scale_y) ? scale_x : scale_y;
 
     QPainter painter;
-    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
     /*draw fence*/
@@ -1391,7 +1392,8 @@ void MainWindow::on_dial_Offset_Angle_valueChanged(int value)
 
 void MainWindow::on_pushButton_clicked()
 {
-    flying_height = ui->lineEdit_Flying_Height->text().toFloat();
+    take_off_height = ui->lineEdit_Take_Off_Height->text().toFloat();
+    //flying_height = ui->lineEdit_Flying_Height->text().toFloat();
     spray_length = ui->lineEdit_Spray_Length->text().toFloat();
     spray_width = ui->lineEdit_Spray_Width->text().toFloat();
 
@@ -1424,7 +1426,7 @@ int MainWindow::record_break_point()
         cout<<"break_position_num"<<break_position_num<<endl;
     }
     char name[17] = "/break_point.txt";
-    char path[80]="/home/chg/catkin_ws/src/break_point";
+    char path[80]="/home/cc/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1476,7 +1478,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         route_p_local[i][1] = 0;
     }
 
-    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
+    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -1493,7 +1495,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         return 0;
     }*/
 
-    QString fileName = "/home/chg/catkin_ws/src/break_point/break_point.txt";
+    QString fileName = "/home/cc/catkin_ws/src/break_point/break_point.txt";
 
     //initial
     gps_num = 0;
@@ -1637,7 +1639,6 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
             for(int n=point_p+1;str[n]!='#';n++) //fractional
                 fnum += ((double)(str[n]-'0'))/pow(10,(n-point_p));
             flying_height=fnum;//save
-            ui->lineEdit_Flying_Height->setText(QString::number(flying_height));
             ui->lineEdit_Flying_Height_2->setText(QString::number(flying_height));
         }
 
@@ -1712,6 +1713,7 @@ void MainWindow::break_point_cal()
     //record home gps position
     if(!test_mode) record_home_gps();
     record_start_p();
+    take_off_height = ui->lineEdit_Flying_Height_2->text().toFloat();
 
     /*calculate fence local position*/
     for(int i=0;i<=gps_num;i++)
