@@ -151,9 +151,9 @@ MainWindow::MainWindow(QWidget *parent) :
     //other line edit
     ui->lineEdit_Flying_Height->setText(QString::number(flying_height));
     ui->lineEdit_Take_Off_Height->setText(QString::number(take_off_height));
-    ui->lineEdit_Measure_Compensation->setText(QString::number(1.0));
-    ui->lineEdit_Spray_Width->setText(QString::number(3.0));
-    ui->lineEdit_Spray_Length->setText(QString::number(1.6));
+    ui->lineEdit_Measure_Compensation->setText(QString::number(measure_compensation_m));
+    ui->lineEdit_Spray_Width->setText(QString::number(spray_width));
+    ui->lineEdit_Spray_Length->setText(QString::number(spray_length));
 
     //set limitation
     ui->lineEdit_Flying_Height->setValidator(new QDoubleValidator(0.0,6.0,2,this));
@@ -192,7 +192,7 @@ void MainWindow::init_paras()
     measure_compensation_m = 1.0;
 
     spray_length = 1.6;
-    spray_width = 2.0;
+    spray_width = 3.0;
 
     list_seq = 0;
     list_seq_cp1 = 0;
@@ -1158,7 +1158,8 @@ void MainWindow::turn_point_cal()
 
     /*calculate yaw*/
     float yaw_local = atan2(route_p_local[1][1]-route_p_local[0][1], route_p_local[1][0]-route_p_local[0][0]); //E is 0, N is Pi/2
-    yaw_set = -yaw_local + PI_2; //turn to: N is 0, E is Pi/2
+    yaw_set = yaw_local - PI_2; //turn to: N is 0, E is Pi/2
+    if(yaw_set < 0) yaw_set += 2*PI;
     cout<<"yaw_set="<<yaw_set<<endl; 
 
     //draw
@@ -1403,6 +1404,9 @@ void MainWindow::on_pushButton_clicked()
     if(ui->radioButton_Auto_Avoid->isChecked()) message.extra_function.obs_avoid_enable = 2;
     else if(ui->radioButton_Mannual_Avoid->isChecked()) message.extra_function.obs_avoid_enable = 1;
     else message.extra_function.obs_avoid_enable = 0;
+
+    QMessageBox message_box(QMessageBox::Warning,"提示","保存成功!", QMessageBox::Ok, NULL);
+    message_box.exec();
 
 }
 
