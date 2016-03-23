@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(&message,SIGNAL(global_Velocity_Signal()),this,SLOT(global_Velocity_Slot()));
     QObject::connect(&message,SIGNAL(global_Rel_Alt_Signal()),this,SLOT(global_Rel_Alt_Slot()));
     QObject::connect(&message,SIGNAL(local_Orientation_Signal()),this,SLOT(local_Position_Slot()));
-    QObject::connect(&message,SIGNAL(optical_Flow_Signal()),this,SLOT(optical_Flow_Slot()));
+    QObject::connect(&message,SIGNAL(laser_Distance_Signal()),this,SLOT(laser_Distance_Slot()));
     QObject::connect(&message,SIGNAL(temperature_Signal()),this,SLOT(temperature_Slot()));
     QObject::connect(&message,SIGNAL(time_Signal()),this,SLOT(time_Slot()));
     QObject::connect(&message,SIGNAL(setpoints_Confirm_Signal()),this,SLOT(setpoints_Confirm_Slot()));
@@ -134,11 +134,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton_Delete_Point->setEnabled(false);
     ui->pushButton_Restore_Point->setEnabled(false);
     ui->pushButton_Break_Paras_Update->setEnabled(false);
-    ui->pushButton_OFFBOARD_Imitate->deleteLater();
 
     ui->progressBar_GPS->setRange(0,15);
     ui->progressBar_Battery->setRange(190,240);
     ui->progressBar_RC->setRange(0,200);
+    ui->progressBar_RC->setValue(160);
 
     //set conection display
     ui->label_Controller->setStyleSheet("background-color:red");
@@ -164,9 +164,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Spray_Length->setValidator(new QDoubleValidator(0.0,10.0,2,this));
 
     //set extra function
-    ui->checkBox_Auto_Height->setChecked(false);
-    ui->radioButton_Off_Avoid->setChecked(true);
+    ui->checkBox_Auto_Height->setChecked(message.extra_function.laser_height_enable);
 
+    if(message.extra_function.obs_avoid_enable == 2)
+        ui->radioButton_Auto_Avoid->setChecked(true);
+    else if(message.extra_function.obs_avoid_enable == 1)
+        ui->radioButton_Mannual_Avoid->setChecked(true);
+    else ui->radioButton_Mannual_Avoid->setChecked(true);
+
+    ui->horizontalSlider_Spray->setValue((int)(message.pump.pump_speed_sp*10));
 
 }
 
@@ -257,9 +263,64 @@ void MainWindow::init_paras()
     message.global_position.gps.x = 0.0;
     message.global_position.gps.y =0.0;
 
+
     gps_diraction[0][0] = 0.0;
     gps_fence[0][0] = 0.0;
 
+    read_saved_paras();
+}
+
+int MainWindow::read_saved_paras()
+{
+    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
+    QDir *temp = new QDir;
+    bool exist = temp->exists(QString(dir_path));
+    if(!exist)
+    {
+        cout<<"no config file found!"<<endl;
+        return 0;
+    }
+
+    QString fileName = "/home/chg/catkin_ws/src/break_point/config.txt";
+    fstream config_f;
+    char *path = fileName.toLatin1().data();
+    config_f.open(path,ios::in);
+
+    int read_counter=0;
+    while(!config_f.eof())
+    {   //while not the end of file
+        char str[30];
+        config_f >> str;
+        /*values:  take_off_height spray_length spray_width
+          message.extra_function.laser_height_enable message.extra_function.obs_avoid_enable
+          message.pump.pump_speed_sp*/
+        float fnum = str[1]-'0'+ (str[3]-'0')/10.0;
+        switch(read_counter)
+        {
+        case 0:
+            take_off_height = fnum;
+            break;
+        case 1:
+            spray_length = fnum;
+            break;
+        case 2:
+            spray_width = fnum;
+            break;
+        case 3:
+            message.extra_function.laser_height_enable = (int)fnum;
+            break;
+        case 4:
+            message.extra_function.obs_avoid_enable = (int)fnum;
+            break;
+        case 5:
+            message.pump.pump_speed_sp = fnum;
+            break;
+        default:
+            break;
+        }
+        read_counter ++;
+    }
+        config_f.close(); //reading finished
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -326,7 +387,7 @@ void MainWindow::global_Velocity_Slot()
 
 void MainWindow::global_Rel_Alt_Slot()
 {
-    ui->lineEdit_Rel_Alt->setText(QString::number(message.global_position.rel_altitude));
+    if(message.extra_function.laser_height_enable==0)ui->lineEdit_Rel_Alt->setText(QString::number(message.global_position.rel_altitude));
 }
 
 void MainWindow::global_GPS_Satellites_Slot()
@@ -401,9 +462,11 @@ void MainWindow::local_Position_Slot()
     else ;
 }
 
-void MainWindow::optical_Flow_Slot()
+void MainWindow::laser_Distance_Slot()
 {
-    ;
+    if(message.extra_function.laser_height_enable==1)
+        ui->lineEdit_Rel_Alt->setText(QString::number(message.laser_distance.laser_x));
+    ui->lineEdit_Obstacle_Distance->setText(QString::number(message.laser_distance.min_distance));
 }
 
 void MainWindow::temperature_Slot()
@@ -619,16 +682,6 @@ void MainWindow::setpoints_Confirm_Slot()
         ui->textBrowser_Offboard_Message->append(tr("发送中断!"));
 }
 
-void MainWindow::on_pushButton_OFFBOARD_Imitate_clicked()
-{
-    //message.mode = "自动喷洒";
-    //message.global_position.gps.satellites= 16;
-    //global_GPS_Satellites_Slot();
-    message.radio_rssi=-80;
-    radio_Status_Slot();
-}
-
-
 void MainWindow::pump_Status_Slot()
 {
     ui->lineEdit_Spray_Speed->setText(QString::number(message.pump.spray_speed));
@@ -655,7 +708,7 @@ void MainWindow::draw_gps_fence()
 
     //draw lines
     QPainter painter;
-    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
 
@@ -703,7 +756,7 @@ void MainWindow::draw_route(int window)
     scale = (scale_x < scale_y) ? scale_x : scale_y;
 
     QPainter painter;
-    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
     /*draw fence*/
@@ -1384,7 +1437,7 @@ void MainWindow::on_dial_Offset_Angle_valueChanged(int value)
 
 }
 
-int MainWindow::on_pushButton_clicked()
+int MainWindow::on_pushButton_Save_Config_clicked()
 {
     take_off_height = ui->lineEdit_Take_Off_Height->text().toFloat();
     //flying_height = ui->lineEdit_Flying_Height->text().toFloat();
@@ -1398,17 +1451,19 @@ int MainWindow::on_pushButton_clicked()
     else if(ui->radioButton_Mannual_Avoid->isChecked()) message.extra_function.obs_avoid_enable = 1;
     else message.extra_function.obs_avoid_enable = 0;
 
-    message.pump.spray_speed_sp = 0.6;
+
     message.pump.pump_speed_sp = ((float) ui->horizontalSlider_Spray->value())/10.0;
+    cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
 
     char name[17] = "/config.txt";
-    char path[80]="/home/cc/catkin_ws/src/break_point";
+    char path[80]="/home/chg/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
     if(!exist)temp->mkdir(QString(path));
 
     strcat(path,name);
+
     cout<<"file saved in "<<path<<endl;
     FILE *pTxtFile = NULL;
 
@@ -1426,14 +1481,16 @@ int MainWindow::on_pushButton_clicked()
     fprintf(pTxtFile,"#%.1f#\n",spray_width);
     fprintf(pTxtFile,"#%.1f#\n",(float)message.extra_function.laser_height_enable);
     fprintf(pTxtFile,"#%.1f#\n",(float)message.extra_function.obs_avoid_enable);
+    fprintf(pTxtFile,"#%.1f#\n",message.pump.pump_speed_sp);
 
-    fprintf(pTxtFile,"end\n");
-    //fprintf(pTxtFile,"take_off_height spray_length spray_width message.extra_function.laser_height_enable message.extra_function.obs_avoid_enable");
+    fprintf(pTxtFile,"end");
+    //fprintf(pTxtFile,"take_off_height spray_length spray_width message.extra_function.laser_height_enable message.extra_function.obs_avoid_enable message.pump.pump_speed_sp");
 
     fclose(pTxtFile);
 
     QMessageBox message_box(QMessageBox::Warning,"提示","保存成功!", QMessageBox::Ok, NULL);
     message_box.exec();
+    return 1;
 
 }
 
@@ -1457,7 +1514,7 @@ int MainWindow::record_break_point()
         cout<<"break_position_num"<<break_position_num<<endl;
     }
     char name[17] = "/break_point.txt";
-    char path[80]="/home/cc/catkin_ws/src/break_point";
+    char path[80]="/home/chg/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1509,7 +1566,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         route_p_local[i][1] = 0;
     }
 
-    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
+    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -1526,7 +1583,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         return 0;
     }*/
 
-    QString fileName = "/home/cc/catkin_ws/src/break_point/break_point.txt";
+    QString fileName = "/home/chg/catkin_ws/src/break_point/break_point.txt";
 
     //initial
     gps_num = 0;
@@ -1811,4 +1868,25 @@ void MainWindow::record_start_p()
     start_y = message.local_position.position.y;
     draw_start_x = -start_y;
     draw_start_y = start_x;
+}
+
+void MainWindow::on_pushButton_Restore_Config__clicked()
+{
+    take_off_height = 3.5;
+    spray_width = 3.0;
+    spray_length = 1.6;
+    message.extra_function.laser_height_enable = 1;
+    message.extra_function.obs_avoid_enable = 1;
+    message.pump.pump_speed_sp = 0.8;
+
+    ui->lineEdit_Take_Off_Height->setText(QString::number(take_off_height));
+    ui->lineEdit_Spray_Width->setText(QString::number(spray_width));
+    ui->lineEdit_Spray_Length->setText(QString::number(spray_length));
+
+    ui->checkBox_Auto_Height->setChecked(message.extra_function.laser_height_enable);
+    ui->radioButton_Mannual_Avoid->setChecked(true);
+    ui->horizontalSlider_Spray->setValue((int)(message.pump.pump_speed_sp*10));
+
+    on_pushButton_Save_Config_clicked();
+
 }
