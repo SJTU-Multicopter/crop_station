@@ -28,6 +28,12 @@
 #include <QDir>
 #include <QCloseEvent>
 
+#include <phonon/audiooutput.h>
+#include <phonon/mediaobject.h>
+#include <phonon/mediasource.h>
+#include <phonon/videowidget.h>
+#include <QSound>
+
 #define FLY_POSITION_LABEL_WIDTH 720
 #define FLY_POSITION_LABEL_HEIGHT 540
 #define FLY_ROUTE_LABEL_WIDTH 720
@@ -80,7 +86,7 @@ private slots:
     void init_paras();
 
     void state_Mode_Slot();//模式控制显示
-    void battey_Slot();//电量显示
+    void battery_Slot();//电量显示
     void radio_Status_Slot();//信号强度显示
     void global_Velocity_Slot();//速度显示
     void global_GPS_Slot();//GPS信息显示
@@ -237,6 +243,7 @@ private:
 
     int time_counter;
 
+    bool battery_low;
 
     //以下变量用于画路径图
     float paint_scale ;

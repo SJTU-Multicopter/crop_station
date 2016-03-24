@@ -45,7 +45,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(&message,SIGNAL(state_Mode_Signal()),this,SLOT(state_Mode_Slot()));
     QObject::connect(&message,SIGNAL(global_GPS_Signal()),this,SLOT(global_GPS_Slot()));
     QObject::connect(&message,SIGNAL(global_GPS_Satellites_Signal()),this,SLOT(global_GPS_Satellites_Slot()));
-    QObject::connect(&message,SIGNAL(battery_Signal()),this,SLOT(battey_Slot()));
+    QObject::connect(&message,SIGNAL(battery_Signal()),this,SLOT(battery_Slot()));
     QObject::connect(&message,SIGNAL(radio_Signal()),this,SLOT(radio_Status_Slot()));
     QObject::connect(&message,SIGNAL(global_Velocity_Signal()),this,SLOT(global_Velocity_Slot()));
     QObject::connect(&message,SIGNAL(global_Rel_Alt_Signal()),this,SLOT(global_Rel_Alt_Slot()));
@@ -63,7 +63,8 @@ MainWindow::MainWindow(QWidget *parent) :
     cout<<fixed;
     cout.precision(8);
 
-    ui->tabWidget->setCurrentIndex(1);
+
+    ui->tabWidget->setCurrentIndex(0);
 
     //pitch、roll、yaw绘图仪表初始化
     StatusPainter *painter = new StatusPainter();
@@ -71,10 +72,6 @@ MainWindow::MainWindow(QWidget *parent) :
     //if(choice==0)ui->tabWidget_PaintArea->removeTab(0);
     ui->tabWidget_PaintArea->setCurrentIndex(1);//显示第二页
     get_Painter_Address(painter);
-
-
-    //消除lineEdit的边框和背景色
-   // ui->lineEdit_Battery->setStyleSheet("border :1px ;background : (0x00,0xff,0x00,0x00)");
 
     //字体字号颜色设定
     QFont font1("宋体",12,QFont::Bold);
@@ -85,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent) :
     palette1.setColor(QPalette::Text,QColor(255,0,0));
     ui->label_Mode->setPalette(palette1);
     ui->label_Tips->setPalette(palette1);
+    ui->label_Warning_Area->setPalette(palette1);
 
     QPalette palette2;//蓝色
     palette2.setColor(QPalette::Text,QColor(0,0,255));
@@ -190,6 +188,8 @@ void MainWindow::init_paras()
     gps_num_cp2 = 0;
     gps_num_cp3 = 0;
 
+    battery_low = false;
+
     diraction_p_num = 0;
     diraction_k = 0.0;
 
@@ -211,8 +211,8 @@ void MainWindow::init_paras()
         home_lon = 0.0;
     }
     else{
-        home_lat = 31.027424;
-        home_lon = 121.444330;
+        home_lat = 31.027528;
+        home_lon = 121.444228;
         break_point_lat = 31.027428;
         break_point_lon = 121.444350;
         break_position_num = 4;
@@ -272,7 +272,7 @@ void MainWindow::init_paras()
 
 int MainWindow::read_saved_paras()
 {
-    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
+    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -281,7 +281,7 @@ int MainWindow::read_saved_paras()
         return 0;
     }
 
-    QString fileName = "/home/chg/catkin_ws/src/break_point/config.txt";
+    QString fileName = "/home/cc/catkin_ws/src/break_point/config.txt";
     fstream config_f;
     char *path = fileName.toLatin1().data();
     config_f.open(path,ios::in);
@@ -358,10 +358,12 @@ void MainWindow::state_Mode_Slot()
     }
 }
 
-void MainWindow::battey_Slot()
+void MainWindow::battery_Slot()
 {
     ui->lineEdit_Battery->setText(QString::number(message.battery_voltage));
     ui->progressBar_Battery->setValue(((message.battery_voltage>24.5)?24.5:message.battery_voltage)*10);
+    if(message.battery_voltage < 19.8) battery_low = true;
+    else battery_low = false;
 }
 
 void MainWindow::radio_Status_Slot()
@@ -465,8 +467,8 @@ void MainWindow::local_Position_Slot()
 void MainWindow::laser_Distance_Slot()
 {
     if(message.extra_function.laser_height_enable==1)
-        ui->lineEdit_Rel_Alt->setText(QString::number(message.laser_distance.laser_x));
-    ui->lineEdit_Obstacle_Distance->setText(QString::number(message.laser_distance.min_distance));
+        ui->lineEdit_Rel_Alt->setText(QString::number(-message.laser_distance.laser_x));
+    ui->lineEdit_Obstacle_Distance->setText(QString::number(message.laser_distance.min_distance/100));
 }
 
 void MainWindow::temperature_Slot()
@@ -543,6 +545,9 @@ void MainWindow::timer_Slot()
         ui->label_Computer->setStyleSheet("background-color:red");
 
     controller_flag_last=controller_flag;
+
+    if(battery_low) ui->label_Warning_Area->setText("警告! 电量不足, 请立即返航");
+    else ui->label_Warning_Area->setText(" ");
 }
 
 void MainWindow::on_pushButton_Reset_FlyingTime_clicked()
@@ -554,7 +559,6 @@ void MainWindow::on_pushButton_Reset_FlyingTime_clicked()
 
 int MainWindow::on_pushButton_Route_Generate_clicked()
 {
-
     //record home gps position
     if(!test_mode) record_home_gps();
 
@@ -708,7 +712,7 @@ void MainWindow::draw_gps_fence()
 
     //draw lines
     QPainter painter;
-    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
 
@@ -756,7 +760,7 @@ void MainWindow::draw_route(int window)
     scale = (scale_x < scale_y) ? scale_x : scale_y;
 
     QPainter painter;
-    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
     /*draw fence*/
@@ -1086,12 +1090,13 @@ void MainWindow::turn_point_cal()
     d[2] = point_dist(intersection_p_local[intersection_num-1][0], intersection_p_local[intersection_num-1][1], 0.0, 0.0);
     d[3] = point_dist(intersection_p_local[intersection_num][0], intersection_p_local[intersection_num][1], 0.0, 0.0);
 
-    for(int i=0;i<3;i++)
+    for(int i=0;i<4;i++)
     {
         if(d[i] < min_start_dist)
         {
             min_start_dist = d[i];
             method_num = i;
+            cout<<i<<" min: "<<min_start_dist<<endl;
         }
     }
     cout<<"intersection_num="<<intersection_num<<endl;
@@ -1456,7 +1461,7 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
 
     char name[17] = "/config.txt";
-    char path[80]="/home/chg/catkin_ws/src/break_point";
+    char path[80]="/home/cc/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1514,7 +1519,7 @@ int MainWindow::record_break_point()
         cout<<"break_position_num"<<break_position_num<<endl;
     }
     char name[17] = "/break_point.txt";
-    char path[80]="/home/chg/catkin_ws/src/break_point";
+    char path[80]="/home/cc/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1566,7 +1571,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         route_p_local[i][1] = 0;
     }
 
-    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
+    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -1583,7 +1588,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         return 0;
     }*/
 
-    QString fileName = "/home/chg/catkin_ws/src/break_point/break_point.txt";
+    QString fileName = "/home/cc/catkin_ws/src/break_point/break_point.txt";
 
     //initial
     gps_num = 0;
