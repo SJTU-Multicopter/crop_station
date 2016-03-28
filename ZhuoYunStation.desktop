@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=zhuoyun
+Comment=Station
+Exec=bash -ic "/home/chg/Desktop/Start/START.sh"
+Icon=/home/chg/catkin_ws/src/station/src/Icons/2-300.png
+Terminal=true
+Name[en_US]=ZhuoYun
+
