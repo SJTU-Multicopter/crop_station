@@ -141,6 +141,10 @@ private slots:
 
     void on_pushButton_Restore_Config__clicked();
 
+    void on_pushButton_Route_Generate_Common_clicked();
+
+    void common_flight_cal(float length, float width, float height, int times, bool left_side);
+
 private:
     Ui::MainWindow *ui;
     QTime system_time;
@@ -187,6 +191,12 @@ private:
 
     int intersection_num;
 
+    /*for common flight mode*/
+    float common_length;
+    float common_width;
+    float common_height;
+    int common_times;
+    bool common_side; //left: true; right: false
 
     /*for break point*/
     bool break_point_flag1;
@@ -228,6 +238,8 @@ private:
     double orientation_last;
 
     bool bool_flying;
+
+    bool controller_working;
 
     float flying_height;
     float take_off_height;

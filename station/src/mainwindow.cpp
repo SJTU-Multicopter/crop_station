@@ -8,7 +8,7 @@
 
 extern MavrosMessage message;
 
-bool test_mode = false;
+bool test_mode = true;
 bool imitate_mode = false;
 
 int choice=0;//选择显示的图片
@@ -172,6 +172,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->horizontalSlider_Spray->setValue((int)(message.pump.pump_speed_sp*10));
 
+    //set common flight settings
+    ui->radioButton_Left_Common->setChecked(true);
+
 }
 
 
@@ -263,16 +266,27 @@ void MainWindow::init_paras()
     message.global_position.gps.x = 0.0;
     message.global_position.gps.y =0.0;
 
+    message.local_position.orientation.yaw = PI_2;
+
 
     gps_diraction[0][0] = 0.0;
     gps_fence[0][0] = 0.0;
+
+    /*for common flight mode*/
+    common_height = 2.5;
+    common_length = -1.0;
+    common_width = -1.0;
+    common_times = -1;
+    common_side = true;
+
+    controller_working = false;
 
     read_saved_paras();
 }
 
 int MainWindow::read_saved_paras()
 {
-    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
+    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -281,7 +295,7 @@ int MainWindow::read_saved_paras()
         return 0;
     }
 
-    QString fileName = "/home/cc/catkin_ws/src/break_point/config.txt";
+    QString fileName = "/home/chg/catkin_ws/src/break_point/config.txt";
     fstream config_f;
     char *path = fileName.toLatin1().data();
     config_f.open(path,ios::in);
@@ -532,11 +546,15 @@ void MainWindow::time_Update()
 void MainWindow::timer_Slot()
 {
     if(controller_flag != controller_flag_last)
+    {
         ui->label_Controller->setStyleSheet("background-color:green");
+        controller_working = true;
+    }
     else
     {
         ui->label_Controller->setStyleSheet("background-color:red");
         computer_flag = 0;
+        controller_working = false;
     }
 
     if(computer_flag != 0)
@@ -562,7 +580,7 @@ int MainWindow::on_pushButton_Route_Generate_clicked()
     //record home gps position
     if(!test_mode) record_home_gps();
 
-    if(home_lat == 0)
+    if(home_lat == 0 || (!controller_working && !test_mode))
     {
         QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
         message_box.exec();
@@ -712,7 +730,7 @@ void MainWindow::draw_gps_fence()
 
     //draw lines
     QPainter painter;
-    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
 
@@ -745,46 +763,71 @@ void MainWindow::draw_gps_fence()
 
 void MainWindow::draw_route(int window)
 {
-     /*calculate scale with local position of fence and home position*/
     float scale = 0.0;
     float min_x = 0.0, max_x = 0.0, min_y = 0.0, max_y = 0.0;
-    for(int i =0;i<=gps_num;i++)
+
+    if(window != 3)
     {
-        if(min_x > gps_fence_local[i][0]) min_x = gps_fence_local[i][0];
-        if(max_x < gps_fence_local[i][0]) max_x = gps_fence_local[i][0];
-        if(min_y > gps_fence_local[i][1]) min_y = gps_fence_local[i][1];
-        if(max_y < gps_fence_local[i][1]) max_y = gps_fence_local[i][1];
+        /*calculate scale with local position of fence and home position*/
+
+        for(int i =0;i<=gps_num;i++)
+        {
+            if(min_x > gps_fence_local[i][0]) min_x = gps_fence_local[i][0];
+            if(max_x < gps_fence_local[i][0]) max_x = gps_fence_local[i][0];
+            if(min_y > gps_fence_local[i][1]) min_y = gps_fence_local[i][1];
+            if(max_y < gps_fence_local[i][1]) max_y = gps_fence_local[i][1];
+        }
+        float scale_x = (FLY_ROUTE_LABEL_WIDTH - 120)/(max_x - min_x);
+        float scale_y = (FLY_ROUTE_LABEL_HEIGHT - 80)/(max_y - min_y);
+        scale = (scale_x < scale_y) ? scale_x : scale_y;
     }
-    float scale_x = (FLY_ROUTE_LABEL_WIDTH - 120)/(max_x - min_x);
-    float scale_y = (FLY_ROUTE_LABEL_HEIGHT - 80)/(max_y - min_y);
-    scale = (scale_x < scale_y) ? scale_x : scale_y;
+    else
+    {
+        /*calculate scale with common flight position and home position*/
+
+        for(int i =0;i<=intersection_num;i++)
+        {
+            if(min_x > route_p_local[i][0]) min_x = route_p_local[i][0];
+            if(max_x < route_p_local[i][0]) max_x = route_p_local[i][0];
+            if(min_y > route_p_local[i][1]) min_y = route_p_local[i][1];
+            if(max_y < route_p_local[i][1]) max_y = route_p_local[i][1];
+        }
+        float scale_x = (FLY_ROUTE_LABEL_WIDTH - 120)/(max_x - min_x);
+        float scale_y = (FLY_ROUTE_LABEL_HEIGHT - 80)/(max_y - min_y);
+        scale = (scale_x < scale_y) ? scale_x : scale_y;
+    }
+
 
     QPainter painter;
-    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
-    /*draw fence*/
-    for(int j=0;j<gps_num;j++)
+
+    if(window != 3)
     {
-        float px=(gps_fence_local[j][0]-min_x)*scale+60;
-        float py=(FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[j][1]-min_y)*scale-60);
-        float pnx=(gps_fence_local[j+1][0]-min_x)*scale+60;
-        float pny=(FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[j+1][1]-min_y)*scale-60);
-        painter.drawLine(px,py,pnx,pny);
-        painter.drawEllipse(px,py,10,10);
-        QRectF rect(px+20, py, px+75, py-20);
-        painter.drawText(rect, Qt::AlignLeft,tr("Point")+QString::number(gps_fence[j][2]+1));
+        /*draw fence*/
+        for(int j=0;j<gps_num;j++)
+        {
+            float px=(gps_fence_local[j][0]-min_x)*scale+60;
+            float py=(FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[j][1]-min_y)*scale-60);
+            float pnx=(gps_fence_local[j+1][0]-min_x)*scale+60;
+            float pny=(FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[j+1][1]-min_y)*scale-60);
+            painter.drawLine(px,py,pnx,pny);
+            painter.drawEllipse(px,py,10,10);
+            QRectF rect(px+20, py, px+75, py-20);
+            painter.drawText(rect, Qt::AlignLeft,tr("Point")+QString::number(gps_fence[j][2]+1));
+        }
+
+        //draw line between the last and the first point
+        painter.drawLine((gps_fence_local[gps_num][0]-min_x)*scale+60,FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[gps_num][1]-min_y)*scale-60,(gps_fence_local[0][0]-min_x)*scale+60,FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[0][1]-min_y)*scale-60);
+
+        //draw last point
+        float last_point_x = (gps_fence_local[gps_num][0]-min_x)*scale+60;
+        float last_point_y = FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[gps_num][1]-min_y)*scale-60;
+        painter.drawEllipse(last_point_x,last_point_y,10,10);
+        QRectF rect(last_point_x+20, last_point_y, last_point_x+75, last_point_y-20);
+        painter.drawText(rect, Qt::AlignLeft,tr("Point")+QString::number(gps_fence[gps_num][2]+1));
     }
-
-    //draw line between the last and the first point
-    painter.drawLine((gps_fence_local[gps_num][0]-min_x)*scale+60,FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[gps_num][1]-min_y)*scale-60,(gps_fence_local[0][0]-min_x)*scale+60,FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[0][1]-min_y)*scale-60);
-
-    //draw last point
-    float last_point_x = (gps_fence_local[gps_num][0]-min_x)*scale+60;
-    float last_point_y = FLY_ROUTE_LABEL_HEIGHT-(gps_fence_local[gps_num][1]-min_y)*scale-60;
-    painter.drawEllipse(last_point_x,last_point_y,10,10);
-    QRectF rect(last_point_x+20, last_point_y, last_point_x+75, last_point_y-20);
-    painter.drawText(rect, Qt::AlignLeft,tr("Point")+QString::number(gps_fence[gps_num][2]+1));
 
     /*draw route*/
     painter.setPen(QPen(Qt::yellow,3));
@@ -829,6 +872,11 @@ void MainWindow::draw_route(int window)
         painter.restore();
         painter.end();
         fly_position_label->setPixmap(QPixmap::fromImage(image));//在label上显示图片
+    }
+    else if(window == 3)
+    {
+        painter.end();
+        fly_route_label->setPixmap(QPixmap::fromImage(image));//在label上显示图片
     }
     else ;
 }
@@ -1209,7 +1257,7 @@ void MainWindow::turn_point_cal()
 
     /*calculate yaw*/
     float yaw_local = atan2(route_p_local[1][1]-route_p_local[0][1], route_p_local[1][0]-route_p_local[0][0]); //E is 0, N is Pi/2
-    yaw_set = yaw_local - PI_2; //turn to: N is 0, E is Pi/2
+    yaw_set = yaw_local - PI_2; //turn to: N is 0, W is Pi/2
     if(yaw_set < 0) yaw_set += 2*PI;
     cout<<"yaw_set="<<yaw_set<<endl; 
 
@@ -1461,7 +1509,7 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
 
     char name[17] = "/config.txt";
-    char path[80]="/home/cc/catkin_ws/src/break_point";
+    char path[80]="/home/chg/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1519,7 +1567,7 @@ int MainWindow::record_break_point()
         cout<<"break_position_num"<<break_position_num<<endl;
     }
     char name[17] = "/break_point.txt";
-    char path[80]="/home/cc/catkin_ws/src/break_point";
+    char path[80]="/home/chg/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1565,13 +1613,20 @@ int MainWindow::record_break_point()
 
 int MainWindow::on_pushButton_Open_Break_Point_clicked()
 {
+    if(home_lat == 0 || (!test_mode && !controller_working))
+    {
+        QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
+        message_box.exec();
+        return 0;
+    }
+
     for(int i=0;i<MAX_POINT_NUM;i++)
     {
         route_p_local[i][0] = 0;
         route_p_local[i][1] = 0;
     }
 
-    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
+    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -1581,14 +1636,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         return 0;
     }
 
-    /*if(home_lat == 0 && !test_mode)
-    {
-        QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
-        message_box.exec();
-        return 0;
-    }*/
-
-    QString fileName = "/home/cc/catkin_ws/src/break_point/break_point.txt";
+    QString fileName = "/home/chg/catkin_ws/src/break_point/break_point.txt";
 
     //initial
     gps_num = 0;
@@ -1894,4 +1942,115 @@ void MainWindow::on_pushButton_Restore_Config__clicked()
 
     on_pushButton_Save_Config_clicked();
 
+}
+
+void MainWindow::on_pushButton_Route_Generate_Common_clicked()
+{
+    common_length = ui->lineEdit_Fly_Length_Common->text().toFloat();
+    common_width = ui->lineEdit_Fly_Width_Common->text().toFloat();
+    common_height = ui->lineEdit_Fly_Height_Common->text().toFloat();
+    //cout<<"common_height"<<common_height<<endl;
+    common_times = ui->lineEdit_Fly_Times_Common->text().toInt() - 1;
+    if(ui->radioButton_Left_Common->isChecked()) common_side = true;
+    else common_side = false;
+
+    if(common_length < 0.1)
+    {
+        QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的飞行长度!", QMessageBox::Cancel, NULL);
+        message_box.exec();
+    }
+    else if(common_width < 0.1)
+    {
+        QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的折返宽度!", QMessageBox::Cancel, NULL);
+        message_box.exec();
+    }
+    else if(common_height <  0.1)
+    {
+        QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的飞行高度!", QMessageBox::Cancel, NULL);
+        message_box.exec();
+    }
+    else if(common_times < 1)
+    {
+        QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的折返次数!", QMessageBox::Cancel, NULL);
+        message_box.exec();
+    }
+    else
+    {
+        common_flight_cal(common_length,common_width,common_height,common_times,common_side);
+        ui->pushButton_Route_Send->setEnabled(true);
+    }
+
+}
+
+void MainWindow::common_flight_cal(float length, float width, float height, int times, bool left_side)
+{
+    yaw_set = -message.local_position.orientation.yaw + PI;
+    float angle1 = yaw_set + PI_2;
+    float angle2 = angle1 + PI_2;
+    float x = 0.0;
+    float y = 0.0;
+    intersection_num = times*2; //abort the last width point
+
+    if(left_side)
+    {
+        for(int i=0;i<=intersection_num;i+=2)
+        {
+            if(i%4==0)
+            {
+                route_p_local[i][0] = x + length * cos(angle1);
+                route_p_local[i][1] = y + length * sin(angle1);
+                x = route_p_local[i][0];
+                y = route_p_local[i][1];
+                route_p_local[i+1][0] = x + width * cos(angle2);
+                route_p_local[i+1][1] = y + width * sin(angle2);
+                x = route_p_local[i+1][0];
+                y = route_p_local[i+1][1];
+            }
+            else
+            {
+                route_p_local[i][0] = x - length * cos(angle1);
+                route_p_local[i][1] = y - length * sin(angle1);
+                x = route_p_local[i][0];
+                y = route_p_local[i][1];
+                route_p_local[i+1][0] = x + width * cos(angle2);
+                route_p_local[i+1][1] = y + width * sin(angle2);
+                x = route_p_local[i+1][0];
+                y = route_p_local[i+1][1];
+            }
+        }
+
+    }
+
+    else  //right side
+    {
+        for(int i=0;i<=intersection_num;i+=2)
+        {
+            if(i%4==0)
+            {
+                route_p_local[i][0] = x + length * cos(angle1);
+                route_p_local[i][1] = y + length * sin(angle1);
+                x = route_p_local[i][0];
+                y = route_p_local[i][1];
+                route_p_local[i+1][0] = x - width * cos(angle2);
+                route_p_local[i+1][1] = y - width * sin(angle2);
+                x = route_p_local[i+1][0];
+                y = route_p_local[i+1][1];
+            }
+            else
+            {
+                route_p_local[i][0] = x - length * cos(angle1);
+                route_p_local[i][1] = y - length * sin(angle1);
+                x = route_p_local[i][0];
+                y = route_p_local[i][1];
+                route_p_local[i+1][0] = x - width * cos(angle2);
+                route_p_local[i+1][1] = y - width * sin(angle2);
+                x = route_p_local[i+1][0];
+                y = route_p_local[i+1][1];
+            }
+        }
+
+    }
+
+    //draw
+    draw_route(3);
 }
