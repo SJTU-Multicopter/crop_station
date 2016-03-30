@@ -28,11 +28,6 @@
 #include <QDir>
 #include <QCloseEvent>
 
-#include <phonon/audiooutput.h>
-#include <phonon/mediaobject.h>
-#include <phonon/mediasource.h>
-#include <phonon/videowidget.h>
-#include <QSound>
 
 #define FLY_POSITION_LABEL_WIDTH 720
 #define FLY_POSITION_LABEL_HEIGHT 540
