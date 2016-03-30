@@ -45,12 +45,12 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(&message,SIGNAL(state_Mode_Signal()),this,SLOT(state_Mode_Slot()));
     QObject::connect(&message,SIGNAL(global_GPS_Signal()),this,SLOT(global_GPS_Slot()));
     QObject::connect(&message,SIGNAL(global_GPS_Satellites_Signal()),this,SLOT(global_GPS_Satellites_Slot()));
-    QObject::connect(&message,SIGNAL(battery_Signal()),this,SLOT(battey_Slot()));
+    QObject::connect(&message,SIGNAL(battery_Signal()),this,SLOT(battery_Slot()));
     QObject::connect(&message,SIGNAL(radio_Signal()),this,SLOT(radio_Status_Slot()));
     QObject::connect(&message,SIGNAL(global_Velocity_Signal()),this,SLOT(global_Velocity_Slot()));
     QObject::connect(&message,SIGNAL(global_Rel_Alt_Signal()),this,SLOT(global_Rel_Alt_Slot()));
     QObject::connect(&message,SIGNAL(local_Orientation_Signal()),this,SLOT(local_Position_Slot()));
-    QObject::connect(&message,SIGNAL(optical_Flow_Signal()),this,SLOT(optical_Flow_Slot()));
+    QObject::connect(&message,SIGNAL(laser_Distance_Signal()),this,SLOT(laser_Distance_Slot()));
     QObject::connect(&message,SIGNAL(temperature_Signal()),this,SLOT(temperature_Slot()));
     QObject::connect(&message,SIGNAL(time_Signal()),this,SLOT(time_Slot()));
     QObject::connect(&message,SIGNAL(setpoints_Confirm_Signal()),this,SLOT(setpoints_Confirm_Slot()));
@@ -63,7 +63,8 @@ MainWindow::MainWindow(QWidget *parent) :
     cout<<fixed;
     cout.precision(8);
 
-    ui->tabWidget->setCurrentIndex(1);
+
+    ui->tabWidget->setCurrentIndex(0);
 
     //pitch、roll、yaw绘图仪表初始化
     StatusPainter *painter = new StatusPainter();
@@ -71,10 +72,6 @@ MainWindow::MainWindow(QWidget *parent) :
     //if(choice==0)ui->tabWidget_PaintArea->removeTab(0);
     ui->tabWidget_PaintArea->setCurrentIndex(1);//显示第二页
     get_Painter_Address(painter);
-
-
-    //消除lineEdit的边框和背景色
-   // ui->lineEdit_Battery->setStyleSheet("border :1px ;background : (0x00,0xff,0x00,0x00)");
 
     //字体字号颜色设定
     QFont font1("宋体",12,QFont::Bold);
@@ -85,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent) :
     palette1.setColor(QPalette::Text,QColor(255,0,0));
     ui->label_Mode->setPalette(palette1);
     ui->label_Tips->setPalette(palette1);
+    ui->label_Warning_Area->setPalette(palette1);
 
     QPalette palette2;//蓝色
     palette2.setColor(QPalette::Text,QColor(0,0,255));
@@ -134,11 +132,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton_Delete_Point->setEnabled(false);
     ui->pushButton_Restore_Point->setEnabled(false);
     ui->pushButton_Break_Paras_Update->setEnabled(false);
-    ui->pushButton_OFFBOARD_Imitate->deleteLater();
 
     ui->progressBar_GPS->setRange(0,15);
     ui->progressBar_Battery->setRange(190,240);
     ui->progressBar_RC->setRange(0,200);
+    ui->progressBar_RC->setValue(160);
 
     //set conection display
     ui->label_Controller->setStyleSheet("background-color:red");
@@ -164,9 +162,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Spray_Length->setValidator(new QDoubleValidator(0.0,10.0,2,this));
 
     //set extra function
-    ui->checkBox_Auto_Height->setChecked(false);
-    ui->radioButton_Off_Avoid->setChecked(true);
+    ui->checkBox_Auto_Height->setChecked(message.extra_function.laser_height_enable);
 
+    if(message.extra_function.obs_avoid_enable == 2)
+        ui->radioButton_Auto_Avoid->setChecked(true);
+    else if(message.extra_function.obs_avoid_enable == 1)
+        ui->radioButton_Mannual_Avoid->setChecked(true);
+    else ui->radioButton_Mannual_Avoid->setChecked(true);
+
+    ui->horizontalSlider_Spray->setValue((int)(message.pump.pump_speed_sp*10));
 
 }
 
@@ -183,6 +187,8 @@ void MainWindow::init_paras()
     gps_num_cp1 = 0;
     gps_num_cp2 = 0;
     gps_num_cp3 = 0;
+
+    battery_low = false;
 
     diraction_p_num = 0;
     diraction_k = 0.0;
@@ -205,8 +211,8 @@ void MainWindow::init_paras()
         home_lon = 0.0;
     }
     else{
-        home_lat = 31.027424;
-        home_lon = 121.444330;
+        home_lat = 31.027528;
+        home_lon = 121.444228;
         break_point_lat = 31.027428;
         break_point_lon = 121.444350;
         break_position_num = 4;
@@ -252,14 +258,69 @@ void MainWindow::init_paras()
     message.extra_function.add_three = 0;
 
     message.pump.pump_speed_sp = 0.0;
-    message.pump.spray_speed_sp = 0.0;
+    message.pump.spray_speed_sp = 0.6;
 
     message.global_position.gps.x = 0.0;
     message.global_position.gps.y =0.0;
 
+
     gps_diraction[0][0] = 0.0;
     gps_fence[0][0] = 0.0;
 
+    read_saved_paras();
+}
+
+int MainWindow::read_saved_paras()
+{
+    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
+    QDir *temp = new QDir;
+    bool exist = temp->exists(QString(dir_path));
+    if(!exist)
+    {
+        cout<<"no config file found!"<<endl;
+        return 0;
+    }
+
+    QString fileName = "/home/cc/catkin_ws/src/break_point/config.txt";
+    fstream config_f;
+    char *path = fileName.toLatin1().data();
+    config_f.open(path,ios::in);
+
+    int read_counter=0;
+    while(!config_f.eof())
+    {   //while not the end of file
+        char str[30];
+        config_f >> str;
+        /*values:  take_off_height spray_length spray_width
+          message.extra_function.laser_height_enable message.extra_function.obs_avoid_enable
+          message.pump.pump_speed_sp*/
+        float fnum = str[1]-'0'+ (str[3]-'0')/10.0;
+        switch(read_counter)
+        {
+        case 0:
+            take_off_height = fnum;
+            break;
+        case 1:
+            spray_length = fnum;
+            break;
+        case 2:
+            spray_width = fnum;
+            break;
+        case 3:
+            message.extra_function.laser_height_enable = (int)fnum;
+            break;
+        case 4:
+            message.extra_function.obs_avoid_enable = (int)fnum;
+            break;
+        case 5:
+            message.pump.pump_speed_sp = fnum;
+            break;
+        default:
+            break;
+        }
+        read_counter ++;
+    }
+        config_f.close(); //reading finished
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -297,10 +358,12 @@ void MainWindow::state_Mode_Slot()
     }
 }
 
-void MainWindow::battey_Slot()
+void MainWindow::battery_Slot()
 {
     ui->lineEdit_Battery->setText(QString::number(message.battery_voltage));
     ui->progressBar_Battery->setValue(((message.battery_voltage>24.5)?24.5:message.battery_voltage)*10);
+    if(message.battery_voltage < 19.8) battery_low = true;
+    else battery_low = false;
 }
 
 void MainWindow::radio_Status_Slot()
@@ -326,7 +389,7 @@ void MainWindow::global_Velocity_Slot()
 
 void MainWindow::global_Rel_Alt_Slot()
 {
-    ui->lineEdit_Rel_Alt->setText(QString::number(message.global_position.rel_altitude));
+    if(message.extra_function.laser_height_enable==0)ui->lineEdit_Rel_Alt->setText(QString::number(message.global_position.rel_altitude));
 }
 
 void MainWindow::global_GPS_Satellites_Slot()
@@ -401,9 +464,11 @@ void MainWindow::local_Position_Slot()
     else ;
 }
 
-void MainWindow::optical_Flow_Slot()
+void MainWindow::laser_Distance_Slot()
 {
-    ;
+    if(message.extra_function.laser_height_enable==1)
+        ui->lineEdit_Rel_Alt->setText(QString::number(-message.laser_distance.laser_x));
+    ui->lineEdit_Obstacle_Distance->setText(QString::number(message.laser_distance.min_distance/100));
 }
 
 void MainWindow::temperature_Slot()
@@ -480,6 +545,9 @@ void MainWindow::timer_Slot()
         ui->label_Computer->setStyleSheet("background-color:red");
 
     controller_flag_last=controller_flag;
+
+    if(battery_low) ui->label_Warning_Area->setText("警告! 电量不足, 请立即返航");
+    else ui->label_Warning_Area->setText(" ");
 }
 
 void MainWindow::on_pushButton_Reset_FlyingTime_clicked()
@@ -491,7 +559,6 @@ void MainWindow::on_pushButton_Reset_FlyingTime_clicked()
 
 int MainWindow::on_pushButton_Route_Generate_clicked()
 {
-
     //record home gps position
     if(!test_mode) record_home_gps();
 
@@ -617,23 +684,6 @@ void MainWindow::setpoints_Confirm_Slot()
         ui->textBrowser_Offboard_Message->append(tr("可以起飞!")+QString::number(message.success_counter)+tr("/")+QString::number(route_p_send_total+1));
     else
         ui->textBrowser_Offboard_Message->append(tr("发送中断!"));
-}
-
-void MainWindow::on_pushButton_OFFBOARD_Imitate_clicked()
-{
-    //message.mode = "自动喷洒";
-    //message.global_position.gps.satellites= 16;
-    //global_GPS_Satellites_Slot();
-    message.radio_rssi=-80;
-    radio_Status_Slot();
-}
-
-
-
-void MainWindow::on_horizontalSlider_Spray_actionTriggered(int action)
-{
-    message.pump.spray_speed_sp = ((float) ui->horizontalSlider_Spray->value())/10.0;
-    message.pump.pump_speed_sp = 1.0;
 }
 
 void MainWindow::pump_Status_Slot()
@@ -1040,12 +1090,13 @@ void MainWindow::turn_point_cal()
     d[2] = point_dist(intersection_p_local[intersection_num-1][0], intersection_p_local[intersection_num-1][1], 0.0, 0.0);
     d[3] = point_dist(intersection_p_local[intersection_num][0], intersection_p_local[intersection_num][1], 0.0, 0.0);
 
-    for(int i=0;i<3;i++)
+    for(int i=0;i<4;i++)
     {
         if(d[i] < min_start_dist)
         {
             min_start_dist = d[i];
             method_num = i;
+            cout<<i<<" min: "<<min_start_dist<<endl;
         }
     }
     cout<<"intersection_num="<<intersection_num<<endl;
@@ -1391,7 +1442,7 @@ void MainWindow::on_dial_Offset_Angle_valueChanged(int value)
 
 }
 
-void MainWindow::on_pushButton_clicked()
+int MainWindow::on_pushButton_Save_Config_clicked()
 {
     take_off_height = ui->lineEdit_Take_Off_Height->text().toFloat();
     //flying_height = ui->lineEdit_Flying_Height->text().toFloat();
@@ -1405,8 +1456,46 @@ void MainWindow::on_pushButton_clicked()
     else if(ui->radioButton_Mannual_Avoid->isChecked()) message.extra_function.obs_avoid_enable = 1;
     else message.extra_function.obs_avoid_enable = 0;
 
+
+    message.pump.pump_speed_sp = ((float) ui->horizontalSlider_Spray->value())/10.0;
+    cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
+
+    char name[17] = "/config.txt";
+    char path[80]="/home/cc/catkin_ws/src/break_point";
+
+    QDir *temp = new QDir;
+    bool exist = temp->exists(QString(path));
+    if(!exist)temp->mkdir(QString(path));
+
+    strcat(path,name);
+
+    cout<<"file saved in "<<path<<endl;
+    FILE *pTxtFile = NULL;
+
+    pTxtFile = fopen(path, "w+");
+    if (pTxtFile == NULL)
+    {
+        printf("The program exist!\n");
+        return 0;
+    }
+
+    cout<<"saving...\n";
+
+    fprintf(pTxtFile,"#%.1f#\n",take_off_height);
+    fprintf(pTxtFile,"#%.1f#\n",spray_length);
+    fprintf(pTxtFile,"#%.1f#\n",spray_width);
+    fprintf(pTxtFile,"#%.1f#\n",(float)message.extra_function.laser_height_enable);
+    fprintf(pTxtFile,"#%.1f#\n",(float)message.extra_function.obs_avoid_enable);
+    fprintf(pTxtFile,"#%.1f#\n",message.pump.pump_speed_sp);
+
+    fprintf(pTxtFile,"end");
+    //fprintf(pTxtFile,"take_off_height spray_length spray_width message.extra_function.laser_height_enable message.extra_function.obs_avoid_enable message.pump.pump_speed_sp");
+
+    fclose(pTxtFile);
+
     QMessageBox message_box(QMessageBox::Warning,"提示","保存成功!", QMessageBox::Ok, NULL);
     message_box.exec();
+    return 1;
 
 }
 
@@ -1784,4 +1873,25 @@ void MainWindow::record_start_p()
     start_y = message.local_position.position.y;
     draw_start_x = -start_y;
     draw_start_y = start_x;
+}
+
+void MainWindow::on_pushButton_Restore_Config__clicked()
+{
+    take_off_height = 3.5;
+    spray_width = 3.0;
+    spray_length = 1.6;
+    message.extra_function.laser_height_enable = 1;
+    message.extra_function.obs_avoid_enable = 1;
+    message.pump.pump_speed_sp = 0.8;
+
+    ui->lineEdit_Take_Off_Height->setText(QString::number(take_off_height));
+    ui->lineEdit_Spray_Width->setText(QString::number(spray_width));
+    ui->lineEdit_Spray_Length->setText(QString::number(spray_length));
+
+    ui->checkBox_Auto_Height->setChecked(message.extra_function.laser_height_enable);
+    ui->radioButton_Mannual_Avoid->setChecked(true);
+    ui->horizontalSlider_Spray->setValue((int)(message.pump.pump_speed_sp*10));
+
+    on_pushButton_Save_Config_clicked();
+
 }

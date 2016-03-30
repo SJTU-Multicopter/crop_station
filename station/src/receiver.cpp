@@ -100,7 +100,7 @@ void MavrosMessage::run()
     ros::Subscriber sub10 = n.subscribe("/mavros/global_position/raw/fix",20,chatterCallback_GPS_Fix);
     ros::Subscriber sub11 = n.subscribe("/mavros/px4flow/raw/optical_flow_rad",10,chatterCallback_Optical_Flow);
     ros::Subscriber sub12 = n.subscribe("/mavros/imu/temperature",100,chatterCallback_Imu_Temperature);
-    ros::Subscriber sub13 = n.subscribe("/mavros/sonar_receiver/sonar_receiver",20,chatterCallback_Sonar);
+    //ros::Subscriber sub13 = n.subscribe("/mavros/sonar_receiver/sonar_receiver",20,chatterCallback_Sonar);
     ros::Subscriber sub14 = n.subscribe("/mavros/laser_receiver/laser_receiver",20,chatterCallback_Laser);
     ros::Subscriber sub15 = n.subscribe("/mavros/local_position/local_velocity",20,chatterCallback_local_velocity);
     //ros::Subscriber sub16 = n.subscribe("/offboard_route_points_confirm",30,chatterCallback_Setpoints_Confirm);
@@ -329,7 +329,6 @@ void chatterCallback_Optical_Flow(const mavros_extras::OpticalFlowRad &msg)//光
     message.optical_flow.distance=msg.distance;
     message.optical_flow.temperature=msg.temperature;
     //cout<<msg;
-    message.msg_Send_Optical_Flow();
 }
 
 void chatterCallback_Sonar(const mavros_extras::SonarDistance &msg)
@@ -337,13 +336,15 @@ void chatterCallback_Sonar(const mavros_extras::SonarDistance &msg)
     message.optical_flow.distance=msg.sonar_up/100.0; //changed to sonar msg, clarence, 2015.12.2
     message.optical_flow.temperature=0;
     //cout<<msg;
-    message.msg_Send_Optical_Flow();
 }
 
 void chatterCallback_Laser(const mavros_extras::LaserDistance &msg)
 {
-    message.optical_flow.quality=msg.min_distance/100.0;
-    message.msg_Send_Optical_Flow();
+    message.laser_distance.min_distance =msg.min_distance;
+    message.laser_distance.angle =msg.angle;
+    message.laser_distance.laser_x =msg.laser_x;
+    message.laser_distance.laser_y =msg.laser_y;
+    message.msg_Send_Laser_Distance();
 }
 
 void chatterCallback_local_velocity(const geometry_msgs::Vector3 &msg)

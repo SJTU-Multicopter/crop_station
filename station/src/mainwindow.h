@@ -28,6 +28,7 @@
 #include <QDir>
 #include <QCloseEvent>
 
+
 #define FLY_POSITION_LABEL_WIDTH 720
 #define FLY_POSITION_LABEL_HEIGHT 540
 #define FLY_ROUTE_LABEL_WIDTH 720
@@ -80,14 +81,14 @@ private slots:
     void init_paras();
 
     void state_Mode_Slot();//模式控制显示
-    void battey_Slot();//电量显示
+    void battery_Slot();//电量显示
     void radio_Status_Slot();//信号强度显示
     void global_Velocity_Slot();//速度显示
     void global_GPS_Slot();//GPS信息显示
     void global_GPS_Satellites_Slot();//GPS星数
     void global_Rel_Alt_Slot();//相对高度显示
     void local_Position_Slot();//姿态显示
-    void optical_Flow_Slot();//光流显示
+    void laser_Distance_Slot();//光流显示
     void temperature_Slot();//温度显示
     void time_Slot();//飞行时间显示
     void setpoints_Confirm_Slot();
@@ -101,14 +102,12 @@ private slots:
     void on_pushButton_Reset_FlyingTime_clicked();
     void on_pushButton_Route_Send_clicked();
     int on_pushButton_Route_Generate_clicked();
-    void on_pushButton_OFFBOARD_Imitate_clicked();
 
     void on_pushButton_Open_Fence_clicked();
     void on_pushButton_Open_Diraction_clicked();
     void on_pushButton_Delete_Point_clicked();
     void on_pushButton_Restore_Point_clicked();
     void on_listWidget_GPS_Point_itemClicked();
-    void on_horizontalSlider_Spray_actionTriggered(int action);
 
     void delete_point(int x);
     bool restore_point();
@@ -130,13 +129,17 @@ private slots:
 
     void on_dial_Offset_Angle_valueChanged(int value);
 
-    void on_pushButton_clicked();
+    int on_pushButton_Save_Config_clicked();
 
     int on_pushButton_Open_Break_Point_clicked();
 
     void break_point_cal();
 
     void on_pushButton_Break_Paras_Update_clicked();
+
+    int read_saved_paras();
+
+    void on_pushButton_Restore_Config__clicked();
 
 private:
     Ui::MainWindow *ui;
@@ -235,6 +238,7 @@ private:
 
     int time_counter;
 
+    bool battery_low;
 
     //以下变量用于画路径图
     float paint_scale ;
