@@ -197,6 +197,7 @@ private:
     float common_height;
     int common_times;
     bool common_side; //left: true; right: false
+    bool common_mode; //used when drawing route to calculate different painting scale
 
     /*for break point*/
     bool break_point_flag1;
@@ -251,6 +252,8 @@ private:
     int time_counter;
 
     bool battery_low;
+
+    int route_plan_mode; // 0: GPS fence mode 1:common mode 2:break point mode
 
     //以下变量用于画路径图
     float paint_scale ;

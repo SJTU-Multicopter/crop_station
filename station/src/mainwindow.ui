@@ -144,7 +144,7 @@
        </rect>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
@@ -591,7 +591,7 @@
           <string>横向移动方向</string>
          </property>
         </widget>
-        <widget class="QWidget" name="">
+        <widget class="QWidget" name="layoutWidget">
          <property name="geometry">
           <rect>
            <x>20</x>
@@ -618,7 +618,7 @@
          </layout>
         </widget>
        </widget>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <property name="geometry">
          <rect>
           <x>40</x>
@@ -786,8 +786,8 @@
         <widget class="QLabel" name="label_36">
          <property name="geometry">
           <rect>
-           <x>79</x>
-           <y>250</y>
+           <x>80</x>
+           <y>230</y>
            <width>67</width>
            <height>17</height>
           </rect>
@@ -799,8 +799,8 @@
         <widget class="QLabel" name="label_46">
          <property name="geometry">
           <rect>
-           <x>100</x>
-           <y>220</y>
+           <x>101</x>
+           <y>200</y>
            <width>21</width>
            <height>17</height>
           </rect>
@@ -812,8 +812,8 @@
         <widget class="QLabel" name="label_44">
          <property name="geometry">
           <rect>
-           <x>59</x>
-           <y>100</y>
+           <x>60</x>
+           <y>80</y>
            <width>91</width>
            <height>20</height>
           </rect>
@@ -825,8 +825,8 @@
         <widget class="QLabel" name="label_45">
          <property name="geometry">
           <rect>
-           <x>49</x>
-           <y>170</y>
+           <x>50</x>
+           <y>150</y>
            <width>21</width>
            <height>17</height>
           </rect>
@@ -838,8 +838,8 @@
         <widget class="QLabel" name="label_47">
          <property name="geometry">
           <rect>
-           <x>159</x>
-           <y>170</y>
+           <x>160</x>
+           <y>150</y>
            <width>21</width>
            <height>17</height>
           </rect>
@@ -851,8 +851,8 @@
         <widget class="QLabel" name="label_48">
          <property name="geometry">
           <rect>
-           <x>59</x>
-           <y>120</y>
+           <x>60</x>
+           <y>100</y>
            <width>56</width>
            <height>17</height>
           </rect>
@@ -906,8 +906,8 @@
         <widget class="QDial" name="dial_Offset_Angle_2">
          <property name="geometry">
           <rect>
-           <x>60</x>
-           <y>130</y>
+           <x>61</x>
+           <y>110</y>
            <width>100</width>
            <height>100</height>
           </rect>
@@ -940,8 +940,8 @@
         <widget class="QWidget" name="layoutWidget_8">
          <property name="geometry">
           <rect>
-           <x>59</x>
-           <y>280</y>
+           <x>60</x>
+           <y>260</y>
            <width>91</width>
            <height>29</height>
           </rect>

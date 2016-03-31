@@ -119,7 +119,7 @@ void MavrosMessage::run()
         //other sendings
         pump_msg.pump_speed_sp = message.pump.pump_speed_sp;
         pump_msg.spray_speed_sp = message.pump.spray_speed_sp;
-        //pump_controller_pub.publish(pump_msg);
+        pump_controller_pub.publish(pump_msg);
 
         extra_msg.laser_height_enable = message.extra_function.laser_height_enable;
         extra_msg.obs_avoid_enable = message.extra_function.obs_avoid_enable;
@@ -152,7 +152,7 @@ void MavrosMessage::run()
                   {
                       pump_msg.pump_speed_sp = message.pump.pump_speed_sp;
                       pump_msg.spray_speed_sp = message.pump.spray_speed_sp;
-                      //pump_controller_pub.publish(pump_msg);
+                      pump_controller_pub.publish(pump_msg);
 
                       extra_msg.laser_height_enable = message.extra_function.laser_height_enable;
                       extra_msg.obs_avoid_enable = message.extra_function.obs_avoid_enable;

@@ -8,7 +8,7 @@
 
 extern MavrosMessage message;
 
-bool test_mode = true;
+bool test_mode = false;
 bool imitate_mode = false;
 
 int choice=0;//选择显示的图片
@@ -278,6 +278,9 @@ void MainWindow::init_paras()
     common_width = -1.0;
     common_times = -1;
     common_side = true;
+    common_mode = false;
+
+    route_plan_mode = 0;
 
     controller_working = false;
 
@@ -286,7 +289,7 @@ void MainWindow::init_paras()
 
 int MainWindow::read_saved_paras()
 {
-    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
+    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -295,7 +298,7 @@ int MainWindow::read_saved_paras()
         return 0;
     }
 
-    QString fileName = "/home/chg/catkin_ws/src/break_point/config.txt";
+    QString fileName = "/home/cc/catkin_ws/src/break_point/config.txt";
     fstream config_f;
     char *path = fileName.toLatin1().data();
     config_f.open(path,ios::in);
@@ -690,6 +693,9 @@ void MainWindow::on_pushButton_Route_Send_clicked()
         send_button_pressed = true;
         ui->textBrowser_Offboard_Message->append("发送中...");
 
+        if(route_plan_mode == 1) common_mode = true;
+        else common_mode = false;
+
     }
 }
 
@@ -730,7 +736,7 @@ void MainWindow::draw_gps_fence()
 
     //draw lines
     QPainter painter;
-    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
 
@@ -766,7 +772,7 @@ void MainWindow::draw_route(int window)
     float scale = 0.0;
     float min_x = 0.0, max_x = 0.0, min_y = 0.0, max_y = 0.0;
 
-    if(window != 3)
+    if(!common_mode && window!=3)
     {
         /*calculate scale with local position of fence and home position*/
 
@@ -799,11 +805,11 @@ void MainWindow::draw_route(int window)
 
 
     QPainter painter;
-    QImage image("/home/chg/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
+    QImage image("/home/cc/catkin_ws/src/station/src/Icons/grass-720x540-2.png");//定义图片，并在图片上绘图方便显示
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
 
-    if(window != 3)
+    if(!common_mode && window!=3)
     {
         /*draw fence*/
         for(int j=0;j<gps_num;j++)
@@ -873,7 +879,7 @@ void MainWindow::draw_route(int window)
         painter.end();
         fly_position_label->setPixmap(QPixmap::fromImage(image));//在label上显示图片
     }
-    else if(window == 3)
+    else if(window==3)
     {
         painter.end();
         fly_route_label->setPixmap(QPixmap::fromImage(image));//在label上显示图片
@@ -1261,6 +1267,8 @@ void MainWindow::turn_point_cal()
     if(yaw_set < 0) yaw_set += 2*PI;
     cout<<"yaw_set="<<yaw_set<<endl; 
 
+    route_plan_mode = 0;
+
     //draw
     draw_route(0);
 }
@@ -1509,7 +1517,7 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
 
     char name[17] = "/config.txt";
-    char path[80]="/home/chg/catkin_ws/src/break_point";
+    char path[80]="/home/cc/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1567,7 +1575,7 @@ int MainWindow::record_break_point()
         cout<<"break_position_num"<<break_position_num<<endl;
     }
     char name[17] = "/break_point.txt";
-    char path[80]="/home/chg/catkin_ws/src/break_point";
+    char path[80]="/home/cc/catkin_ws/src/break_point";
 
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(path));
@@ -1626,7 +1634,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         route_p_local[i][1] = 0;
     }
 
-    char dir_path[80]="/home/chg/catkin_ws/src/break_point";
+    char dir_path[80]="/home/cc/catkin_ws/src/break_point";
     QDir *temp = new QDir;
     bool exist = temp->exists(QString(dir_path));
     if(!exist)
@@ -1636,7 +1644,7 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
         return 0;
     }
 
-    QString fileName = "/home/chg/catkin_ws/src/break_point/break_point.txt";
+    QString fileName = "/home/cc/catkin_ws/src/break_point/break_point.txt";
 
     //initial
     gps_num = 0;
@@ -1903,6 +1911,9 @@ void MainWindow::break_point_cal()
     cout<<"route_p_local[1][1]"<<route_p_local[1][1]<<endl;
 
     ui->pushButton_Route_Send->setEnabled(true);
+
+    route_plan_mode = 2;
+
     draw_route(0);
 }
 
@@ -1974,6 +1985,11 @@ void MainWindow::on_pushButton_Route_Generate_Common_clicked()
         QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的折返次数!", QMessageBox::Cancel, NULL);
         message_box.exec();
     }
+    //else if(home_lat == 0 || (!controller_working && !test_mode))
+    //{
+    //    QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
+    //    message_box.exec();
+    //}
     else
     {
         common_flight_cal(common_length,common_width,common_height,common_times,common_side);
@@ -2050,6 +2066,9 @@ void MainWindow::common_flight_cal(float length, float width, float height, int 
         }
 
     }
+    flying_height = height;
+
+    route_plan_mode = 1;
 
     //draw
     draw_route(3);
