@@ -693,7 +693,7 @@ void MainWindow::on_pushButton_Route_Send_clicked()
         send_button_pressed = true;
         ui->textBrowser_Offboard_Message->append("发送中...");
 
-        if(route_plan_mode == 1) common_mode = true;
+        if(route_plan_mode==1 && route_plan_mode==3) common_mode = true;
         else common_mode = false;
 
     }
@@ -1603,6 +1603,14 @@ int MainWindow::record_break_point()
     fprintf(pTxtFile,"dist=#%f#\n",offset_dist_m);
     fprintf(pTxtFile,"yaws=#%f#\n",yaw_set);
 
+    if(common_mode)
+    {
+        gps_num_last = 0;
+        gps_fence_last[0][0] = 99.0; //mark common mode
+        gps_fence_last[0][1] = 0.0;
+        gps_fence_last[0][2] = 0.0;
+    }
+
     for(int i=0;i<=gps_num_last;i++)
     {
         fprintf(pTxtFile,"flat=#%.8lf# flon=#%.8lf# fseq=#%lf#\n",gps_fence_last[i][0],gps_fence_last[i][1],gps_fence_last[i][2]);
@@ -1679,6 +1687,10 @@ int MainWindow::on_pushButton_Open_Break_Point_clicked()
             for(int n=point_p+1;str[n]!='#';n++) //fractional
                 fnum += ((double)(str[n]-'0'))/pow(10,(n-point_p));
             gps_fence[gps_num][0]=fnum;//save
+
+            /*common mode break point situation*/
+            if(gps_fence[gps_num][0] > 90) route_plan_mode = 3;
+            else route_plan_mode = 2;
         }
 
         else if(str[0]=='f'&&str[1]=='l'&&str[2]=='o'&&str[3]=='n') //fence longitude
@@ -1912,7 +1924,7 @@ void MainWindow::break_point_cal()
 
     ui->pushButton_Route_Send->setEnabled(true);
 
-    route_plan_mode = 2;
+    if(route_plan_mode!=3) route_plan_mode = 2;
 
     draw_route(0);
 }

@@ -112,7 +112,7 @@ private slots:
     void delete_point(int x);
     bool restore_point();
     void draw_gps_fence();
-    void draw_route(int window); //window 0: draw in planning window 1: draw in flying window
+    void draw_route(int window); //window 0: draw in planning, window 1: draw in flying window, window 2: draw in time route in flying window, window 3: draw common route in planning window
 
     void gps_to_local(double lat, double lon, float *x, float *y);
     void local_to_gps(float x, float y, double *lat, double *lon);
@@ -253,7 +253,7 @@ private:
 
     bool battery_low;
 
-    int route_plan_mode; // 0: GPS fence mode 1:common mode 2:break point mode
+    int route_plan_mode; // 0: GPS fence mode 1:common mode 2:GPS fence break point mode 3:common break point mode
 
     //以下变量用于画路径图
     float paint_scale ;
