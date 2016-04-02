@@ -693,7 +693,7 @@ void MainWindow::on_pushButton_Route_Send_clicked()
         send_button_pressed = true;
         ui->textBrowser_Offboard_Message->append("发送中...");
 
-        if(route_plan_mode==1 && route_plan_mode==3) common_mode = true;
+        if(route_plan_mode==1 || route_plan_mode==3) common_mode = true;
         else common_mode = false;
 
     }
@@ -1513,7 +1513,7 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     else message.extra_function.obs_avoid_enable = 0;
 
 
-    message.pump.pump_speed_sp = ((float) ui->horizontalSlider_Spray->value())/10.0;
+    message.pump.pump_speed_sp = ((float) ui->horizontalSlider_Spray->value())/10.0 - 1.0;
     cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
 
     char name[17] = "/config.txt";
