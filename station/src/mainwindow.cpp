@@ -8,7 +8,7 @@
 
 extern MavrosMessage message;
 
-bool test_mode = false;
+bool test_mode = true;
 bool imitate_mode = false;
 
 int choice=0;//选择显示的图片
@@ -358,7 +358,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::state_Mode_Slot()
 {
     ui->label_Mode->setText(QString::fromStdString(message.mode));
-    if(controller_flag!=10000)controller_flag+=1;
+    if(controller_flag<=10000)controller_flag+=1;
     else controller_flag=1;
 
     if(message.mode=="自动喷洒")
@@ -688,14 +688,13 @@ void MainWindow::on_pushButton_Route_Send_clicked()
             route_p_send[route_p_send_total][1] = route_p_local[intersection_num][1];
             route_p_send[route_p_send_total][2] = flying_height;
         }
+        if(route_plan_mode==1 || route_plan_mode==3) common_mode = true;
+        else common_mode = false;
+
         draw_route(1);
 
         send_button_pressed = true;
         ui->textBrowser_Offboard_Message->append("发送中...");
-
-        if(route_plan_mode==1 || route_plan_mode==3) common_mode = true;
-        else common_mode = false;
-
     }
 }
 
@@ -772,22 +771,7 @@ void MainWindow::draw_route(int window)
     float scale = 0.0;
     float min_x = 0.0, max_x = 0.0, min_y = 0.0, max_y = 0.0;
 
-    if(!common_mode && window!=3)
-    {
-        /*calculate scale with local position of fence and home position*/
-
-        for(int i =0;i<=gps_num;i++)
-        {
-            if(min_x > gps_fence_local[i][0]) min_x = gps_fence_local[i][0];
-            if(max_x < gps_fence_local[i][0]) max_x = gps_fence_local[i][0];
-            if(min_y > gps_fence_local[i][1]) min_y = gps_fence_local[i][1];
-            if(max_y < gps_fence_local[i][1]) max_y = gps_fence_local[i][1];
-        }
-        float scale_x = (FLY_ROUTE_LABEL_WIDTH - 120)/(max_x - min_x);
-        float scale_y = (FLY_ROUTE_LABEL_HEIGHT - 80)/(max_y - min_y);
-        scale = (scale_x < scale_y) ? scale_x : scale_y;
-    }
-    else
+    if((common_mode && window != 0) || window==3)
     {
         /*calculate scale with common flight position and home position*/
 
@@ -802,6 +786,21 @@ void MainWindow::draw_route(int window)
         float scale_y = (FLY_ROUTE_LABEL_HEIGHT - 80)/(max_y - min_y);
         scale = (scale_x < scale_y) ? scale_x : scale_y;
     }
+    else
+    {
+        /*calculate scale with local position of fence and home position*/
+
+        for(int i =0;i<=gps_num;i++)
+        {
+            if(min_x > gps_fence_local[i][0]) min_x = gps_fence_local[i][0];
+            if(max_x < gps_fence_local[i][0]) max_x = gps_fence_local[i][0];
+            if(min_y > gps_fence_local[i][1]) min_y = gps_fence_local[i][1];
+            if(max_y < gps_fence_local[i][1]) max_y = gps_fence_local[i][1];
+        }
+        float scale_x = (FLY_ROUTE_LABEL_WIDTH - 120)/(max_x - min_x);
+        float scale_y = (FLY_ROUTE_LABEL_HEIGHT - 80)/(max_y - min_y);
+        scale = (scale_x < scale_y) ? scale_x : scale_y;
+    }
 
 
     QPainter painter;
@@ -809,7 +808,7 @@ void MainWindow::draw_route(int window)
     painter.begin(&image);
     painter.setPen(QPen(Qt::blue,4));
 
-    if(!common_mode && window!=3)
+    if((!common_mode || window == 0 )&& window!=3)
     {
         /*draw fence*/
         for(int j=0;j<gps_num;j++)
@@ -1997,11 +1996,11 @@ void MainWindow::on_pushButton_Route_Generate_Common_clicked()
         QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的折返次数!", QMessageBox::Cancel, NULL);
         message_box.exec();
     }
-    //else if(home_lat == 0 || (!controller_working && !test_mode))
-    //{
-    //    QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
-    //    message_box.exec();
-    //}
+    /*else if(home_lat == 0 || (!controller_working && !test_mode))
+    {
+        QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
+        message_box.exec();
+    }*/
     else
     {
         common_flight_cal(common_length,common_width,common_height,common_times,common_side);
