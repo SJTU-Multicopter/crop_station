@@ -8,7 +8,7 @@
 
 extern MavrosMessage message;
 
-bool test_mode = true;
+bool test_mode = false;
 bool imitate_mode = false;
 
 int choice=0;//选择显示的图片
@@ -134,7 +134,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton_Break_Paras_Update->setEnabled(false);
 
     ui->progressBar_GPS->setRange(0,15);
-    ui->progressBar_Battery->setRange(190,240);
+    ui->progressBar_Battery->setRange(190,245);
     ui->progressBar_RC->setRange(0,200);
     ui->progressBar_RC->setValue(160);
 
