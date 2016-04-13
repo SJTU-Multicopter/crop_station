@@ -175,6 +175,11 @@ MainWindow::MainWindow(QWidget *parent) :
     //set common flight settings
     ui->radioButton_Left_Common->setChecked(true);
 
+    //conceal set take off height function
+    ui->label_Take_Off_Height->deleteLater();
+    ui->label_Take_OFF_Height_Unit->deleteLater();
+    ui->lineEdit_Take_Off_Height->deleteLater();
+
 }
 
 
@@ -439,17 +444,21 @@ void MainWindow::local_Position_Slot()
     ui->lineEdit_Velocity->setText(QString::number(sqrt(message.local_position.speed.x*message.local_position.speed.x+message.local_position.speed.y*message.local_position.speed.y)));
 
     //判断是否起飞
-    if(fabs(message.local_position.position.z)>=1.0)
-        bool_flying=true;
-    if(fabs(message.local_position.position.z)<1.0)
+    if(message.extra_function.laser_height_enable==0)
     {
-        flying_status_counter+=1;
-        if(flying_status_counter>200)
+        if(fabs(message.local_position.position.z)>=1.0)
+            bool_flying=true;
+        if(fabs(message.local_position.position.z)<1.0)
         {
-            flying_status_counter=0;
-            bool_flying = false;
+            flying_status_counter+=1;
+            if(flying_status_counter>200)
+            {
+                flying_status_counter=0;
+                bool_flying = false;
+            }
         }
     }
+
 
     //local_position画当前位置图
     save_counter++;
@@ -458,7 +467,7 @@ void MainWindow::local_Position_Slot()
         position_num = 0; //退出offboard则清零等待重新计数
         fly_distance = 0; //距离清零
     }
-    else if(save_counter>=2) //draw every 5 points
+    else if(save_counter>=1) //draw every 2 points
     {
          //translate coordinate
          real_position[position_num][1]= message.local_position.position.x; //N: x->y
@@ -484,7 +493,12 @@ void MainWindow::local_Position_Slot()
 void MainWindow::laser_Distance_Slot()
 {
     if(message.extra_function.laser_height_enable==1)
+    {
         ui->lineEdit_Rel_Alt->setText(QString::number(-message.laser_distance.laser_x));
+        if(message.laser_distance.laser_x < -0.7) bool_flying=true;
+        else bool_flying = false;
+    }
+
     ui->lineEdit_Obstacle_Distance->setText(QString::number(message.laser_distance.min_distance/100));
 }
 
@@ -665,10 +679,10 @@ void MainWindow::on_pushButton_Route_Send_clicked()
         //insert 2 take off setpoints
         route_p_send[0][0] = 0.0; //x
         route_p_send[0][1] = 0.0; //y
-        route_p_send[0][2] = take_off_height; //h
+        route_p_send[0][2] = flying_height;//take_off_height; //h
         route_p_send[1][0] = route_p_local[0][0]; //x
         route_p_send[1][1] = route_p_local[0][1]; //y
-        route_p_send[1][2] = take_off_height; //h
+        route_p_send[1][2] = flying_height;//take_off_height; //h
         route_p_send_total = intersection_num + 2;
         cout<<"route_p_send_total"<<route_p_send_total<<endl;
 
@@ -2003,6 +2017,7 @@ void MainWindow::on_pushButton_Route_Generate_Common_clicked()
     }*/
     else
     {
+        record_start_p();
         common_flight_cal(common_length,common_width,common_height,common_times,common_side);
         ui->pushButton_Route_Send->setEnabled(true);
     }
