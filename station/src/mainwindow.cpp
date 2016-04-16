@@ -444,11 +444,26 @@ void MainWindow::local_Position_Slot()
     ui->lineEdit_Velocity->setText(QString::number(sqrt(message.local_position.speed.x*message.local_position.speed.x+message.local_position.speed.y*message.local_position.speed.y)));
 
     //判断是否起飞
+
     if(message.extra_function.laser_height_enable==0)
     {
         if(fabs(message.local_position.position.z)>=1.0)
             bool_flying=true;
         if(fabs(message.local_position.position.z)<1.0)
+        {
+            flying_status_counter+=1;
+            if(flying_status_counter>200)
+            {
+                flying_status_counter=0;
+                bool_flying = false;
+            }
+        }
+    }
+    else
+    {
+        if(fabs(message.laser_distance.laser_x)>=0.7)
+            bool_flying=true;
+        if(fabs(message.laser_distance.laser_x)<0.7)
         {
             flying_status_counter+=1;
             if(flying_status_counter>200)
@@ -1513,7 +1528,7 @@ void MainWindow::on_dial_Offset_Angle_valueChanged(int value)
 
 int MainWindow::on_pushButton_Save_Config_clicked()
 {
-    take_off_height = ui->lineEdit_Take_Off_Height->text().toFloat();
+    //take_off_height = ui->lineEdit_Take_Off_Height->text().toFloat();
     //flying_height = ui->lineEdit_Flying_Height->text().toFloat();
     spray_length = ui->lineEdit_Spray_Length->text().toFloat();
     spray_width = ui->lineEdit_Spray_Width->text().toFloat();
@@ -2017,6 +2032,7 @@ void MainWindow::on_pushButton_Route_Generate_Common_clicked()
     }*/
     else
     {
+        if(!test_mode) record_home_gps();
         record_start_p();
         common_flight_cal(common_length,common_width,common_height,common_times,common_side);
         ui->pushButton_Route_Send->setEnabled(true);
@@ -2093,6 +2109,12 @@ void MainWindow::common_flight_cal(float length, float width, float height, int 
 
     }
     flying_height = height;
+
+    /*translate to global coordnate, for flying back to break point*/
+    for(int n=0;n<=intersection_num;n++)
+    {
+        local_to_gps(route_p_local[n][0],route_p_local[n][1],&route_p_gps[n][0],&route_p_gps[n][1]);
+    }
 
     route_plan_mode = 1;
 
