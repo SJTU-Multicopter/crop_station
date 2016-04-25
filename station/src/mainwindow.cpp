@@ -10,6 +10,7 @@ extern MavrosMessage message;
 
 bool test_mode = false;
 bool imitate_mode = false;
+bool develop_mode = true;
 
 int choice=0;//选择显示的图片
 int computer_flag = 0;//used in receiver.cpp, changed here
@@ -180,6 +181,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->label_Take_OFF_Height_Unit->deleteLater();
     ui->lineEdit_Take_Off_Height->deleteLater();
 
+    //conceal develop kits while not develop mode
+    if(!develop_mode) ui->label_Filter_Threshold->deleteLater();
+    if(!develop_mode) ui->lineEdit_Filter_Threshold->deleteLater();
+
 }
 
 
@@ -217,10 +222,14 @@ void MainWindow::init_paras()
     {
         home_lat = 0.0;
         home_lon = 0.0;
+        message.global_position.gps.x = 0.0;
+        message.global_position.gps.y =0.0;
     }
     else{
         home_lat = 31.027528;
         home_lon = 121.444228;
+        message.global_position.gps.x = 31.027528;
+        message.global_position.gps.y = 121.444228;
         break_point_lat = 31.027428;
         break_point_lon = 121.444350;
         break_position_num = 4;
@@ -261,15 +270,14 @@ void MainWindow::init_paras()
 
     message.extra_function.laser_height_enable = 0;
     message.extra_function.obs_avoid_enable = 0;
-    message.extra_function.add_one = 0;
+    message.extra_function.add_one = 10;
     message.extra_function.add_two = 0;
     message.extra_function.add_three = 0;
 
     message.pump.pump_speed_sp = 0.0;
     message.pump.spray_speed_sp = 0.6;
 
-    message.global_position.gps.x = 0.0;
-    message.global_position.gps.y =0.0;
+
 
     message.local_position.orientation.yaw = PI_2;
 
@@ -487,7 +495,7 @@ void MainWindow::local_Position_Slot()
          //translate coordinate
          real_position[position_num][1]= message.local_position.position.x; //N: x->y
          real_position[position_num][0]= -message.local_position.position.y; //W->E: y->x
-         cout<<"real_position[position_num][0]"<<real_position[position_num][0]<<endl;
+         //cout<<"real_position[position_num][0]"<<real_position[position_num][0]<<endl;
 
          if(position_num>0) draw_route(2); //draw
 
@@ -699,7 +707,7 @@ void MainWindow::on_pushButton_Route_Send_clicked()
         route_p_send[1][1] = route_p_local[0][1]; //y
         route_p_send[1][2] = flying_height;//take_off_height; //h
         route_p_send_total = intersection_num + 2;
-        cout<<"route_p_send_total"<<route_p_send_total<<endl;
+        //cout<<"route_p_send_total"<<route_p_send_total<<endl;
 
         //insert route points
         for(int i=0;i<=intersection_num;i++)
@@ -707,7 +715,7 @@ void MainWindow::on_pushButton_Route_Send_clicked()
            route_p_send[i+2][0] = route_p_local[i][0];
            route_p_send[i+2][1] = route_p_local[i][1];
            route_p_send[i+2][2] = flying_height;
-           cout<<i<<" "<<route_p_send[i+2][0]<<endl;
+           //cout<<i<<" "<<route_p_send[i+2][0]<<endl;
         }
         //turn to even number to correct a bug, start from 0
         if(route_p_send_total % 2 == 0)
@@ -800,7 +808,7 @@ void MainWindow::draw_route(int window)
     float scale = 0.0;
     float min_x = 0.0, max_x = 0.0, min_y = 0.0, max_y = 0.0;
 
-    if((common_mode && window != 0) || window==3)
+    if((common_mode && window != 0) || window==3 || gps_fence[gps_num][0] > 90)
     {
         /*calculate scale with common flight position and home position*/
 
@@ -1544,6 +1552,8 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     message.pump.pump_speed_sp = ((float) ui->horizontalSlider_Spray->value())/10.0 - 1.0;
     cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
 
+    if(develop_mode)message.extra_function.add_one = ui->lineEdit_Filter_Threshold->text().toInt();
+
     char name[17] = "/config.txt";
     char path[80]="/home/cc/catkin_ws/src/break_point";
 
@@ -1657,13 +1667,14 @@ int MainWindow::record_break_point()
 
 int MainWindow::on_pushButton_Open_Break_Point_clicked()
 {
-    if(home_lat == 0 || (!test_mode && !controller_working))
+    if(message.global_position.gps.x == 0 || (!test_mode && !controller_working))
     {
         QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
         message_box.exec();
         return 0;
     }
 
+    //initialize
     for(int i=0;i<MAX_POINT_NUM;i++)
     {
         route_p_local[i][0] = 0;
@@ -1905,10 +1916,14 @@ void MainWindow::break_point_cal()
     flying_height = ui->lineEdit_Flying_Height_2->text().toFloat();
 
     /*calculate fence local position*/
-    for(int i=0;i<=gps_num;i++)
+    if(route_plan_mode != 3)
     {
-        gps_to_local(gps_fence[i][0],gps_fence[i][1],&gps_fence_local[i][0],&gps_fence_local[i][1]);     
+        for(int i=0;i<=gps_num;i++)
+        {
+            gps_to_local(gps_fence[i][0],gps_fence[i][1],&gps_fence_local[i][0],&gps_fence_local[i][1]);
+        }
     }
+
     //cout<<gps_fence_local[0][0]<<" + "<<gps_fence_local[0][1]<<endl;
     /*calculate route point local position*/
     for(int i=0;i<=route_p_num_read;i++)
@@ -1916,8 +1931,7 @@ void MainWindow::break_point_cal()
         //cout<<"homelat "<<home_lat<<endl;
         gps_to_local(route_p_gps_read[i][0],route_p_gps_read[i][1],&route_p_local_read[i][0],&route_p_local_read[i][1]);
     }
-    cout<<"route_p_local_read[0][0]"<<route_p_local_read[0][0]<<endl;
-
+    //cout<<"route_p_local_read[0][0]"<<route_p_local_read[0][0]<<endl;
 
     /*set route_p_local from break point and the first unfinished point*/
     gps_to_local(break_point_lat_read,break_point_lon_read,&route_p_local[0][0],&route_p_local[0][1]);
@@ -1945,10 +1959,10 @@ void MainWindow::break_point_cal()
         route_p_local[i][1] += offset_y;
     }
 
-    cout<<"route_p_local[0][0]"<<route_p_local[0][0]<<endl;
-    cout<<"route_p_local[0][1]"<<route_p_local[0][1]<<endl;
-    cout<<"route_p_local[1][0]"<<route_p_local[1][0]<<endl;
-    cout<<"route_p_local[1][1]"<<route_p_local[1][1]<<endl;
+    //cout<<"route_p_local[0][0]"<<route_p_local[0][0]<<endl;
+    //cout<<"route_p_local[0][1]"<<route_p_local[0][1]<<endl;
+    //cout<<"route_p_local[1][0]"<<route_p_local[1][0]<<endl;
+    //cout<<"route_p_local[1][1]"<<route_p_local[1][1]<<endl;
 
     ui->pushButton_Route_Send->setEnabled(true);
 
@@ -2025,11 +2039,11 @@ void MainWindow::on_pushButton_Route_Generate_Common_clicked()
         QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的折返次数!", QMessageBox::Cancel, NULL);
         message_box.exec();
     }
-    /*else if(home_lat == 0 || (!controller_working && !test_mode))
+    else if(message.global_position.gps.x == 0 || (!controller_working && !test_mode))
     {
         QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
         message_box.exec();
-    }*/
+    }
     else
     {
         if(!test_mode) record_home_gps();

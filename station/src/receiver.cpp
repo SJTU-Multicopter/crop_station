@@ -127,8 +127,8 @@ void MavrosMessage::run()
         extra_msg.add_two = message.extra_function.add_two;
         extra_msg.add_three = message.extra_function.add_three;
         extra_function_pub.publish(extra_msg);
-        if(extra_msg.laser_height_enable)cout<<"1"<<endl;
-        else cout<<"0"<<endl;
+        //if(extra_msg.laser_height_enable)cout<<"1"<<endl;
+        //else cout<<"0"<<endl;
 
         //set field values
 
