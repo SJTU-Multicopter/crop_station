@@ -26,10 +26,6 @@
 	</class>
 
         
-
-    <class name="pump_controller" type="mavplugin::PumpControllerPlugin" base_class_type="mavplugin::MavRosPlugin">
-	<description>Writtren by Clarence Chan for pump</description>
-	</class>
 	
     <class name="pump_status" type="mavplugin::PumpStatusPlugin" base_class_type="mavplugin::MavRosPlugin">
 	<description>Writtren by Clarence Chan for pump</description>

@@ -24,7 +24,7 @@
 #include <mavros_extras/OffboardRoutePoints.h>
 #include <mavros_extras/OffboardRoutePointsConfirm.h>
 #include <mavros_extras/PumpStatus.h>
-#include <mavros_extras/PumpController.h>
+//#include <mavros_extras/PumpController.h>
 #include <mavros_extras/ExtraFunction.h>
 #include <sstream>
 #include <math.h>
@@ -44,7 +44,7 @@ extern bool imitate_mode;
 extern float start_x;
 extern float start_y;
 
-mavros_extras::PumpController pump_msg;
+//mavros_extras::PumpController pump_msg;
 mavros_extras::ExtraFunction extra_msg;
 mavros_extras::OffboardRoutePoints route_points_msg;
 bool f_equal(float x, float y);
@@ -109,17 +109,20 @@ void MavrosMessage::run()
 
     //Publish Topic
     ros::Publisher offboard_setpoint_pub = n.advertise<mavros_extras::OffboardRoutePoints>("offboard_route_points", 30);
-    ros::Publisher pump_controller_pub = n.advertise<mavros_extras::PumpController>("pump_controller",10);
+    //ros::Publisher pump_controller_pub = n.advertise<mavros_extras::PumpController>("pump_controller",10);
     ros::Publisher extra_function_pub = n.advertise<mavros_extras::ExtraFunction>("extra_function",10);
 
     ros::Rate check_loop_rate(4);
 
     while(ros::ok())
     {
+        /*NOTE*/
+        /*pump speed is now sending in Raspberry PI, extra_function.add_three is used to send the settled rate to Raspberry PI*/
+        /*Value extra_function.add_three: 0-20*/
         //other sendings
-        pump_msg.pump_speed_sp = message.pump.pump_speed_sp;
-        pump_msg.spray_speed_sp = message.pump.spray_speed_sp;
-        pump_controller_pub.publish(pump_msg);
+        //pump_msg.pump_speed_sp = message.pump.pump_speed_sp;
+        //pump_msg.spray_speed_sp = message.pump.spray_speed_sp;
+        //pump_controller_pub.publish(pump_msg);
 
         extra_msg.laser_height_enable = message.extra_function.laser_height_enable;
         extra_msg.obs_avoid_enable = message.extra_function.obs_avoid_enable;
@@ -151,9 +154,9 @@ void MavrosMessage::run()
                   other_sending_counter ++;
                   if(other_sending_counter == 4)
                   {
-                      pump_msg.pump_speed_sp = message.pump.pump_speed_sp;
+                      /*pump_msg.pump_speed_sp = message.pump.pump_speed_sp;
                       pump_msg.spray_speed_sp = message.pump.spray_speed_sp;
-                      pump_controller_pub.publish(pump_msg);
+                      pump_controller_pub.publish(pump_msg);*/
 
                       extra_msg.laser_height_enable = message.extra_function.laser_height_enable;
                       extra_msg.obs_avoid_enable = message.extra_function.obs_avoid_enable;

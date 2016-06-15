@@ -263,6 +263,9 @@ private:
 
     float fly_distance;
 
+    //pump control
+    float pump_speed;
+    bool start_spraying;
 };
 
 #endif // MAINWINDOW_H

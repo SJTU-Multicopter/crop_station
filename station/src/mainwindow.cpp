@@ -8,7 +8,7 @@
 
 extern MavrosMessage message;
 
-bool test_mode = false;
+bool test_mode = true;
 bool imitate_mode = false;
 bool develop_mode = true;
 
@@ -171,7 +171,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->radioButton_Mannual_Avoid->setChecked(true);
     else ui->radioButton_Mannual_Avoid->setChecked(true);
 
-    ui->horizontalSlider_Spray->setValue((int)(message.pump.pump_speed_sp*10));
+    ui->horizontalSlider_Spray->setValue(message.extra_function.add_three);
 
     //set common flight settings
     ui->radioButton_Left_Common->setChecked(true);
@@ -182,9 +182,20 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lineEdit_Take_Off_Height->deleteLater();
 
     //conceal develop kits while not develop mode
-    if(!develop_mode) ui->label_Filter_Threshold->deleteLater();
-    if(!develop_mode) ui->lineEdit_Filter_Threshold->deleteLater();
+    if(!develop_mode)
+    {
+        ui->label_Filter_Threshold->deleteLater();
+        ui->lineEdit_Filter_Threshold->deleteLater();
 
+        ui->lineEdit_Fly_Speed->deleteLater();
+        ui->label_Fly_Speed->deleteLater();
+        ui->label_Fly_Speed_Unit->deleteLater();
+    }
+    else
+    {
+        ui->lineEdit_Filter_Threshold->setText(QString::number(message.extra_function.add_one));
+        ui->lineEdit_Fly_Speed->setText(QString::number(message.extra_function.add_two));
+    }
 }
 
 
@@ -270,17 +281,13 @@ void MainWindow::init_paras()
 
     message.extra_function.laser_height_enable = 0;
     message.extra_function.obs_avoid_enable = 0;
-    message.extra_function.add_one = 10;
-    message.extra_function.add_two = 0;
-    message.extra_function.add_three = 0;
-
-    message.pump.pump_speed_sp = 0.0;
-    message.pump.spray_speed_sp = 0.6;
-
-
+    message.extra_function.add_one = 10; //laser threshold
+    message.extra_function.add_two = 3; //fly speed
+    message.extra_function.add_three = 10;
+    pump_speed = 1.0;
+    start_spraying = false;
 
     message.local_position.orientation.yaw = PI_2;
-
 
     gps_diraction[0][0] = 0.0;
     gps_fence[0][0] = 0.0;
@@ -323,7 +330,7 @@ int MainWindow::read_saved_paras()
         config_f >> str;
         /*values:  take_off_height spray_length spray_width
           message.extra_function.laser_height_enable message.extra_function.obs_avoid_enable
-          message.pump.pump_speed_sp*/
+          pump_speed*/
         float fnum = str[1]-'0'+ (str[3]-'0')/10.0;
         switch(read_counter)
         {
@@ -343,7 +350,8 @@ int MainWindow::read_saved_paras()
             message.extra_function.obs_avoid_enable = (int)fnum;
             break;
         case 5:
-            message.pump.pump_speed_sp = fnum;
+            pump_speed = fnum;
+            message.extra_function.add_three = (int)(pump_speed*10);
             break;
         default:
             break;
@@ -522,6 +530,7 @@ void MainWindow::laser_Distance_Slot()
         else bool_flying = false;
     }
 
+    ui->lineEdit_Flow_Rate->setText(QString::number(message.laser_distance.laser_y));
     ui->lineEdit_Obstacle_Distance->setText(QString::number(message.laser_distance.min_distance/100));
 }
 
@@ -1548,11 +1557,13 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     else if(ui->radioButton_Mannual_Avoid->isChecked()) message.extra_function.obs_avoid_enable = 1;
     else message.extra_function.obs_avoid_enable = 0;
 
+    //set flow rate
+    pump_speed = (float) ui->horizontalSlider_Spray->value()/10;
+    message.extra_function.add_three = ui->horizontalSlider_Spray->value();
 
-    message.pump.pump_speed_sp = ((float) ui->horizontalSlider_Spray->value())/10.0 - 1.0;
-    cout<<ui->horizontalSlider_Spray->value()<<"  "<<message.pump.pump_speed_sp<<endl;
 
-    if(develop_mode)message.extra_function.add_one = ui->lineEdit_Filter_Threshold->text().toInt();
+    if(develop_mode) message.extra_function.add_one = ui->lineEdit_Filter_Threshold->text().toInt();
+    if(develop_mode) message.extra_function.add_two = ui->lineEdit_Fly_Speed->text().toInt();
 
     char name[17] = "/config.txt";
     char path[80]="/home/cc/catkin_ws/src/break_point";
@@ -1580,10 +1591,9 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     fprintf(pTxtFile,"#%.1f#\n",spray_width);
     fprintf(pTxtFile,"#%.1f#\n",(float)message.extra_function.laser_height_enable);
     fprintf(pTxtFile,"#%.1f#\n",(float)message.extra_function.obs_avoid_enable);
-    fprintf(pTxtFile,"#%.1f#\n",message.pump.pump_speed_sp);
+    fprintf(pTxtFile,"#%.1f#\n",pump_speed);
 
     fprintf(pTxtFile,"end");
-    //fprintf(pTxtFile,"take_off_height spray_length spray_width message.extra_function.laser_height_enable message.extra_function.obs_avoid_enable message.pump.pump_speed_sp");
 
     fclose(pTxtFile);
 
@@ -1995,15 +2005,16 @@ void MainWindow::on_pushButton_Restore_Config__clicked()
     spray_length = 1.6;
     message.extra_function.laser_height_enable = 1;
     message.extra_function.obs_avoid_enable = 1;
-    message.pump.pump_speed_sp = 0.8;
+    pump_speed = 1.0;
+    message.extra_function.add_three = 10;
 
-    ui->lineEdit_Take_Off_Height->setText(QString::number(take_off_height));
+    //ui->lineEdit_Take_Off_Height->setText(QString::number(take_off_height));
     ui->lineEdit_Spray_Width->setText(QString::number(spray_width));
     ui->lineEdit_Spray_Length->setText(QString::number(spray_length));
 
     ui->checkBox_Auto_Height->setChecked(message.extra_function.laser_height_enable);
     ui->radioButton_Mannual_Avoid->setChecked(true);
-    ui->horizontalSlider_Spray->setValue((int)(message.pump.pump_speed_sp*10));
+    ui->horizontalSlider_Spray->setValue(message.extra_function.add_three);
 
     on_pushButton_Save_Config_clicked();
 
