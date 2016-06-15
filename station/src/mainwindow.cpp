@@ -2050,7 +2050,7 @@ void MainWindow::on_pushButton_Route_Generate_Common_clicked()
         QMessageBox message_box(QMessageBox::Warning,"警告","请输入合理的折返次数!", QMessageBox::Cancel, NULL);
         message_box.exec();
     }
-    else if(message.global_position.gps.x == 0 || (!controller_working && !test_mode))
+    else if((message.global_position.gps.x == 0 && !test_mode) || (!controller_working && !test_mode))
     {
         QMessageBox message_box(QMessageBox::Warning,"警告","未连接到飞机或无GPS信号", QMessageBox::Cancel, NULL);
         message_box.exec();
