@@ -88,7 +88,8 @@ private slots:
     void global_GPS_Satellites_Slot();//GPS星数
     void global_Rel_Alt_Slot();//相对高度显示
     void local_Position_Slot();//姿态显示
-    void laser_Distance_Slot();//光流显示
+    void laser_Distance_Slot();//Laser显示
+    void sonar_Distance_Slot();//Flowrate显示
     void temperature_Slot();//温度显示
     void time_Slot();//飞行时间显示
     void setpoints_Confirm_Slot();

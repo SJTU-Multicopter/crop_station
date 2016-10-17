@@ -49,7 +49,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -1754,7 +1754,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="lineEdit_Spray_Speed">
+             <widget class="QLineEdit" name="lineEdit_Pump_Speed">
               <property name="readOnly">
                <bool>true</bool>
               </property>
@@ -1825,7 +1825,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>遥控信号</string>
+       <string>剩余药量</string>
       </property>
       <property name="wordWrap">
        <bool>true</bool>
@@ -2135,7 +2135,7 @@
        <number>24</number>
       </property>
      </widget>
-     <widget class="QProgressBar" name="progressBar_RC">
+     <widget class="QProgressBar" name="progressBar_Volume">
       <property name="geometry">
        <rect>
         <x>1010</x>
@@ -2445,14 +2445,14 @@
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_17">
        <item>
-        <widget class="QLabel" name="label_Filter_Threshold">
+        <widget class="QLabel" name="label_Total_Volume">
          <property name="text">
-          <string>激光强度滤波阈值</string>
+          <string>Total_volume</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEdit_Filter_Threshold">
+        <widget class="QLineEdit" name="lineEdit_Total_Volume">
          <property name="minimumSize">
           <size>
            <width>0</width>

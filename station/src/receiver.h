@@ -32,6 +32,12 @@ struct Laser_Distance
     float laser_y;
 };
 
+struct Flow_Rate
+{
+    float rate;
+    float volume;
+};
+
 struct Pump
 {
     float pump_speed_sp;
@@ -158,6 +164,7 @@ public:
     struct Setpoints_Receive setpoints_receive;
     struct Extra_Function extra_function;
     struct Laser_Distance laser_distance;
+    struct Flow_Rate flow_rate;
 
     int success_counter;
 
@@ -172,6 +179,7 @@ public:
     void msg_Send_Orientation()const{emit local_Orientation_Signal();}
     void msg_Send_GPS_Satellites()const{emit global_GPS_Satellites_Signal();}
     void msg_Send_Laser_Distance()const{emit laser_Distance_Signal();}
+    void msg_Send_Sonar_Distance()const{emit sonar_Distance_Signal();}
     void msg_Send_Imu_Data()const{emit imu_Data_Signal();}
     void msg_Send_Temperature()const{emit temperature_Signal();}
     void msg_Send_Time()const{emit time_Signal();}
@@ -190,6 +198,7 @@ signals:
     void global_Rel_Alt_Signal()const;
     void local_Orientation_Signal()const;
     void laser_Distance_Signal()const;
+    void sonar_Distance_Signal()const;
     void imu_Data_Signal()const;
     void temperature_Signal()const;
     void time_Signal()const;

@@ -11,6 +11,7 @@ extern MavrosMessage message;
 bool test_mode = true;
 bool imitate_mode = false;
 bool develop_mode = true;
+bool volume_flag = true;
 
 int choice=0;//选择显示的图片
 int computer_flag = 0;//used in receiver.cpp, changed here
@@ -52,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(&message,SIGNAL(global_Rel_Alt_Signal()),this,SLOT(global_Rel_Alt_Slot()));
     QObject::connect(&message,SIGNAL(local_Orientation_Signal()),this,SLOT(local_Position_Slot()));
     QObject::connect(&message,SIGNAL(laser_Distance_Signal()),this,SLOT(laser_Distance_Slot()));
+    QObject::connect(&message,SIGNAL(sonar_Distance_Signal()),this,SLOT(sonar_Distance_Slot()));
     QObject::connect(&message,SIGNAL(temperature_Signal()),this,SLOT(temperature_Slot()));
     QObject::connect(&message,SIGNAL(time_Signal()),this,SLOT(time_Slot()));
     QObject::connect(&message,SIGNAL(setpoints_Confirm_Signal()),this,SLOT(setpoints_Confirm_Slot()));
@@ -136,8 +138,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->progressBar_GPS->setRange(0,15);
     ui->progressBar_Battery->setRange(190,245);
-    ui->progressBar_RC->setRange(0,200);
-    ui->progressBar_RC->setValue(160);
+    ui->progressBar_Volume->setRange(0,800);
+    ui->progressBar_Volume->setValue(0);
 
     //set conection display
     ui->label_Controller->setStyleSheet("background-color:red");
@@ -184,8 +186,8 @@ MainWindow::MainWindow(QWidget *parent) :
     //conceal develop kits while not develop mode
     if(!develop_mode)
     {
-        ui->label_Filter_Threshold->deleteLater();
-        ui->lineEdit_Filter_Threshold->deleteLater();
+        ui->label_Total_Volume->deleteLater();
+        ui->lineEdit_Total_Volume->deleteLater();
 
         ui->lineEdit_Fly_Speed->deleteLater();
         ui->label_Fly_Speed->deleteLater();
@@ -193,7 +195,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     else
     {
-        ui->lineEdit_Filter_Threshold->setText(QString::number(message.extra_function.add_one));
+        ui->lineEdit_Total_Volume->setText(QString::number(message.extra_function.add_one));
         ui->lineEdit_Fly_Speed->setText(QString::number(message.extra_function.add_two));
     }
 }
@@ -281,7 +283,7 @@ void MainWindow::init_paras()
 
     message.extra_function.laser_height_enable = 0;
     message.extra_function.obs_avoid_enable = 0;
-    message.extra_function.add_one = 10; //laser threshold
+    message.extra_function.add_one = 80; //laser threshold
     message.extra_function.add_two = 3; //fly speed
     message.extra_function.add_three = 10;
     pump_speed = 1.0;
@@ -407,7 +409,6 @@ void MainWindow::battery_Slot()
 void MainWindow::radio_Status_Slot()
 {
     ui->lineEdit_Radio->setText(QString::number(message.radio_rssi));
-    ui->progressBar_RC->setValue(((message.radio_rssi+240)>200)?200:(message.radio_rssi+240));
 }
 
 void MainWindow::global_GPS_Slot()
@@ -530,8 +531,14 @@ void MainWindow::laser_Distance_Slot()
         else bool_flying = false;
     }
 
-    ui->lineEdit_Flow_Rate->setText(QString::number(message.laser_distance.laser_y));
+    //ui->lineEdit_Flow_Rate->setText(QString::number(message.laser_distance.laser_y));
     ui->lineEdit_Obstacle_Distance->setText(QString::number(message.laser_distance.min_distance/100));
+}
+
+void MainWindow::sonar_Distance_Slot()
+{
+    ui->lineEdit_Flow_Rate->setText(QString::number(message.flow_rate.rate));
+    ui->progressBar_Volume->setValue((int)message.flow_rate.volume*100);
 }
 
 void MainWindow::temperature_Slot()
@@ -757,7 +764,7 @@ void MainWindow::setpoints_Confirm_Slot()
 
 void MainWindow::pump_Status_Slot()
 {
-    ui->lineEdit_Spray_Speed->setText(QString::number(message.pump.spray_speed));
+    ui->lineEdit_Pump_Speed->setText(QString::number(message.pump.pump_speed));
 }
 
 void MainWindow::draw_gps_fence()
@@ -1562,8 +1569,14 @@ int MainWindow::on_pushButton_Save_Config_clicked()
     message.extra_function.add_three = ui->horizontalSlider_Spray->value();
 
 
-    if(develop_mode) message.extra_function.add_one = ui->lineEdit_Filter_Threshold->text().toInt();
-    if(develop_mode) message.extra_function.add_two = ui->lineEdit_Fly_Speed->text().toInt();
+    if(develop_mode)
+    {
+        message.extra_function.add_one = ui->lineEdit_Total_Volume->text().toInt();
+        message.extra_function.add_two = ui->lineEdit_Fly_Speed->text().toInt();
+        if(volume_flag) message.extra_function.add_one += 100;
+        volume_flag=!volume_flag;
+    }
+
 
     char name[17] = "/config.txt";
     char path[80]="/home/cc/catkin_ws/src/break_point";
